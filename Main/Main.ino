@@ -13,7 +13,7 @@ void setup()
   Spider1.Init(4, -120, 35, 2, 12, 0, 8);
   Spider1.Init(5, -60, 38, 5, 13, -4, -3, 7);
   Serial.begin(250000);
-  Serial1.begin(9600);
+  //Serial1.begin(9600);
   Serial2.begin(250000);
   CalibrationGyro();
   Spider1.UpdateAllAngles();
