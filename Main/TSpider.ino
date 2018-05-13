@@ -1,14 +1,11 @@
 #include "Constants.h"
 #include "TSpider.h"
-#include "Gyro.h"
 
 void TSpider::Init(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
 {
   legs[i].Init(_pos, pinCont, pin1, pin2, pog1, pog2, _qR);
   legs[i].R = Radius;
 }
-
-extern unsigned long int oldTimeB;
 
 void TSpider::UpdateAllAngles()
 {
@@ -29,11 +26,11 @@ void TSpider::UpdateAllAngles()
       done &= legs[i].WriteAngle(newAngles[j], newAngles[j + 1]);
       j += 2;
     }
-    CheckGyro();
-    delay(10);
+    gyro.CheckGyro();
+    delay(motionDelaying);
   } while (!done);
   delete[] newAngles;
-  oldTimeB = millis();
+  lastBalancingTime = millis();
 }
 
 int TSpider::ChangeHeight(int dH)
@@ -71,7 +68,7 @@ void TSpider::BasicPosition()
   for (int i = 0; i < 6; i++)
     legs[i].R = 30;
   UpdateAllAngles();
-  Radius = 40;
+  Radius = 30;
 }
 
 void TSpider::UpdateContacts()
@@ -130,7 +127,7 @@ int TSpider::SetRadius(int newR)
     else if ((error = toContacts()) == 0)
     {
       for (int i = 0; i < 6; ++i)
-        if (legs[i].GetHeight() < Lifting)
+        if (legs[i].GetHeight() < lifting)
           return 4;
       for (int i = 0; i < 2; i++)
       {
@@ -180,7 +177,7 @@ int TSpider::Turn(int angle)
         legs[i].R = Radius;
         newVal[i] = 90;
       }
-      Delay(2000);
+      gyro.Delay(2000);
       Serial2.write('w');
       Serial2.write(newVal, 7);
       UpdateAllAngles();
@@ -200,7 +197,7 @@ int TSpider::FixedTurn(int angle)
   if (error == 0)
   {
     for (int i = 0; i < 6; ++i)
-      if (legs[i].GetHeight() < Lifting)
+      if (legs[i].GetHeight() < lifting)
         return 3;
     int angle3, x, newR;
     angle3 = 90 - (angle >> 1);
@@ -225,7 +222,7 @@ int TSpider::FixedTurn(int angle)
         UpdateAllAngles();
         ThreeLegsUpDown( i, i + 2, i + 4, 1);
         toContacts();
-        Delay(100);
+        gyro.Delay(100);
       }
       for (int i = 0; i < 6; ++i)
       {
@@ -250,14 +247,14 @@ int TSpider::Balance()
   int error = toContacts();
   if (error == 0)
   {
-    SerialX.print(horizontal);
-    SerialX.print(" / ");
-    SerialX.println(vertical);
+    //SerialX.print(horizontal);
+    //SerialX.print(" / ");
+    //SerialX.println(vertical);
     int dh = 0;
-    float tanV = tan(vertical * ToRad), tanPV = tan(positionV * ToRad);
+    float tanV = tan(gyro.vertical * ToRad), tanPV = tan(positionV * ToRad);
     for (int i = 0; i < 6; ++i)
     {
-      dh = round((Radius + a) * (cos((legs[i].GetPosition() - horizontal) * ToRad) * tanV -
+      dh = round((Radius + a) * (cos((legs[i].GetPosition() - gyro.horizontal) * ToRad) * tanV -
                                  cos((legs[i].GetPosition() - positionH) * ToRad) * tanPV));
       error |= legs[i].SetHeight(legs[i].GetHeight() + dh);
     }
@@ -268,18 +265,18 @@ int TSpider::Balance()
     return error;
 }
 
-unsigned long int oldTimeB = millis();
+
 int TSpider::CheckBalance()
 {
   int error = 0;
-  if (millis() - oldTimeB > IntervalB)
+  if (millis() - lastBalancingTime > balancingInterval)
   {
-    if (balancing && ((abs(vertical - positionV) > MaxSkew || abs(horizontal - positionH) > 4 * MaxSkew && positionV != 0)))
+    if (balancing && ((abs(gyro.vertical - positionV) > maxSkew || abs(gyro.horizontal - positionH) > 4 * maxSkew && positionV != 0)))
       if (!GetContacts())
         balancing = false;
       else if (error = Balance())
         balancing = false;
-    oldTimeB = millis();
+    lastBalancingTime = millis();
   }
   return error;
 }
@@ -290,7 +287,7 @@ int TSpider::Move(int direction)
   if (error == 0)
   {
     for (int i = 0; i < 6; ++i)
-      if (legs[i].GetHeight() < Lifting)
+      if (legs[i].GetHeight() < lifting)
         return 3;
     byte Val[7] = {90, 90, 90, 90, 90, 90, 10};
     int i, a = 0;
@@ -300,9 +297,9 @@ int TSpider::Move(int direction)
       ThreeLegsUpDown(a, a + 2, a + 4, -1);
 
       for (i = a; i < 6; i += 2)
-        Val[i] = legs[i].ForStep(dS, direction, Radius);
+        Val[i] = legs[i].ForStep(stepLength, direction, Radius);
       for (i = (a + 1) % 2; i < 6; i += 2)
-        Val[i] = legs[i].ForStep(dS, 180 + direction, Radius);
+        Val[i] = legs[i].ForStep(stepLength, 180 + direction, Radius);
 
       Serial2.write('w');
       Serial2.write(Val, 7);
@@ -310,7 +307,7 @@ int TSpider::Move(int direction)
 
       ThreeLegsUpDown(a, a + 2, a + 4, 1);
       toContacts();
-      Delay(50);
+      gyro.Delay(50);
       a = (a + 1) % 2;
     }
     SerialX.read();
@@ -324,7 +321,7 @@ int TSpider::Move(int direction)
     Serial2.write(Val, 7);
     UpdateAllAngles();
     ThreeLegsUpDown(0, 2, 4, 1);
-    Delay(50);
+    gyro.Delay(50);
     ThreeLegsUpDown(1, 3, 5, -1);
     for (i = 1; i < 6; i += 2)
     {
@@ -340,19 +337,47 @@ int TSpider::Move(int direction)
   else
     return error;
 }
-inline void TSpider::TwoLegsUpDown(int i, int j, int a)
+inline void TSpider::TwoLegsUpDown(int i, int j, int dir)
 {
-  legs[i].SetHeight(legs[i].GetHeight() + a * Lifting);
-  legs[j].SetHeight(legs[j].GetHeight() + a * Lifting);
+  legs[i].SetHeight(legs[i].GetHeight() + dir * lifting);
+  legs[j].SetHeight(legs[j].GetHeight() + dir * lifting);
   UpdateAllAngles();
 }
 
-inline void TSpider::ThreeLegsUpDown(int i, int j, int k, int a)
+inline void TSpider::ThreeLegsUpDown(int i, int j, int k, int dir)
 {
-  legs[i].SetHeight(legs[i].GetHeight() + a * Lifting);
-  legs[j].SetHeight(legs[j].GetHeight() + a * Lifting);
-  legs[k].SetHeight(legs[k].GetHeight() + a * Lifting);
+  legs[i].SetHeight(legs[i].GetHeight() + dir * lifting);
+  legs[j].SetHeight(legs[j].GetHeight() + dir * lifting);
+  legs[k].SetHeight(legs[k].GetHeight() + dir * lifting);
   UpdateAllAngles();
+}
+
+long TSpider::ReadVcc()
+{
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+  ADMUX = _BV(MUX5) | _BV(MUX0);
+#elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+  ADMUX = _BV(MUX3) | _BV(MUX2);
+#else
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#endif
+
+  gyro.Delay(75);
+  ADCSRA |= _BV(ADSC);
+  while (bit_is_set(ADCSRA, ADSC));
+  uint8_t low  = ADCL;
+  uint8_t high = ADCH;
+  long result = (high << 8) | low;
+  result = 1125300L / result;
+  return result;
+}
+
+void TSpider::CheckVcc()
+{
+  if (ReadVcc() < 5000)
+    BasicPosition();
 }
 
 

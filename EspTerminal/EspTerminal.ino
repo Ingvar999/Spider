@@ -2,10 +2,10 @@
 String datapos = "<!DOCTYPE HTML>" 
 "<html>" 
 "<head>"
-"<title>Arduinka</title>" 
+"<title>Spider</title>" 
 "</head>" 
 "<body>"
-"<h1>It works!!! :D</h1>"
+"{data}"
 "</body>"
 "</html>";
 

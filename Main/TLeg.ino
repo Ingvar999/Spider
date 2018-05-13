@@ -1,11 +1,10 @@
 #include "Constants.h"
 #include "TLeg.h"
-#include "Gyro.h"
 
-void TLeg::Init(int _pos, int pinCont, int pin1, int pin2, int pog1, int pog2, int qR1)
+void TLeg::Init(int _pos, int pinCont, int pin1, int pin2, int pog1, int pog2, int _qR)
 {
   pos = _pos;
-  qR = qR1;
+  qR = _qR;
   p1 = pog1;
   p2 = pog2;
   servo1.attach(pin1);

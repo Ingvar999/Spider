@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include "Constants.h"
+#include "TGyro.h"
 
 #define MPU6050_ACCEL_XOUT_H       0x3B
 #define MPU6050_PWR_MGMT_1         0x6B
@@ -8,10 +9,6 @@
 #define MPU6050_I2C_ADDRESS        0x68
 
 #define FS_SEL 131.0
-
-int MPU6050_read(int start, uint8_t *buffer, int size);
-int MPU6050_write(int start, const uint8_t *pData, int size);
-int MPU6050_write_reg(int reg, uint8_t data);
 
 typedef union accel_t_gyro_union
 {
@@ -44,15 +41,7 @@ typedef union accel_t_gyro_union
   } value;
 };
 
-unsigned long last_read_time;
-float         last_x_angle;
-float         last_y_angle;
-float         last_z_angle;
-float         last_gyro_x_angle;
-float         last_gyro_y_angle;
-float         last_gyro_z_angle;
-
-void set_last_read_angle_data(unsigned long time, float x, float y, float z, float x_gyro, float y_gyro, float z_gyro) {
+void TGyro::set_last_read_angle_data(unsigned long time, float x, float y, float z, float x_gyro, float y_gyro, float z_gyro) {
   last_read_time = time;
   last_x_angle = x;
   last_y_angle = y;
@@ -62,45 +51,12 @@ void set_last_read_angle_data(unsigned long time, float x, float y, float z, flo
   last_gyro_z_angle = z_gyro;
 }
 
-inline unsigned long get_last_time() {
-  return last_read_time;
-}
-inline float get_last_x_angle() {
-  return last_x_angle;
-}
-inline float get_last_y_angle() {
-  return last_y_angle;
-}
-inline float get_last_z_angle() {
-  return last_z_angle;
-}
-inline float get_last_gyro_x_angle() {
-  return last_gyro_x_angle;
-}
-inline float get_last_gyro_y_angle() {
-  return last_gyro_y_angle;
-}
-inline float get_last_gyro_z_angle() {
-  return last_gyro_z_angle;
-}
-
-float    base_x_accel;
-float    base_y_accel;
-float    base_z_accel;
-
-float    base_x_gyro;
-float    base_y_gyro;
-float    base_z_gyro;
-
-int read_gyro_accel_vals(uint8_t* accel_t_gyro_ptr) {
-
+int TGyro::read_gyro_accel_vals(uint8_t* accel_t_gyro_ptr) {
   accel_t_gyro_union* accel_t_gyro = (accel_t_gyro_union *)accel_t_gyro_ptr;
-
   int error = MPU6050_read(MPU6050_ACCEL_XOUT_H, (uint8_t *)accel_t_gyro, sizeof(*accel_t_gyro));
 
   uint8_t swap;
 #define SWAP(x,y) swap = x; x = y; y = swap
-
   SWAP((*accel_t_gyro).reg.x_accel_h, (*accel_t_gyro).reg.x_accel_l);
   SWAP((*accel_t_gyro).reg.y_accel_h, (*accel_t_gyro).reg.y_accel_l);
   SWAP((*accel_t_gyro).reg.z_accel_h, (*accel_t_gyro).reg.z_accel_l);
@@ -112,7 +68,7 @@ int read_gyro_accel_vals(uint8_t* accel_t_gyro_ptr) {
   return error;
 }
 
-void calibrate_sensors() {
+void TGyro::calibrate_sensors() {
   int                   num_readings = 10;
   float                 x_accel = 0;
   float                 y_accel = 0;
@@ -149,9 +105,7 @@ void calibrate_sensors() {
   base_z_gyro = z_gyro;
 }
 
-float angle_z, horizontal, vertical;
-
-void UpdateGyro()
+void TGyro::UpdateGyro()
 {
   int error;
   accel_t_gyro_union accel_t_gyro;
@@ -168,17 +122,17 @@ void UpdateGyro()
 
   float accel_angle_y = atan(-1 * accel_x / sqrt(pow(accel_y, 2) + pow(accel_z, 2))) * ToGrad;
   float accel_angle_x = atan(accel_y / sqrt(pow(accel_x, 2) + pow(accel_z, 2))) * ToGrad;
-  
-  float dt = (t_now - get_last_time()) / 1000.0;
-  float gyro_angle_x = gyro_x * dt + get_last_x_angle();
-  float gyro_angle_y = gyro_y * dt + get_last_y_angle();
-  angle_z = gyro_z * dt + get_last_z_angle();
 
-  float unfiltered_gyro_angle_x = gyro_x * dt + get_last_gyro_x_angle();
-  float unfiltered_gyro_angle_y = gyro_y * dt + get_last_gyro_y_angle();
-  float unfiltered_gyro_angle_z = gyro_z * dt + get_last_gyro_z_angle();
+  float dt = (t_now - last_read_time) / 1000.0;
+  float gyro_angle_x = gyro_x * dt + last_x_angle;
+  float gyro_angle_y = gyro_y * dt + last_y_angle;
+  angle_z = gyro_z * dt + last_z_angle;
 
-  float alpha = 1000 / (1000 + IntervalG);
+  float unfiltered_gyro_angle_x = gyro_x * dt + last_gyro_x_angle;
+  float unfiltered_gyro_angle_y = gyro_y * dt + last_gyro_y_angle;
+  float unfiltered_gyro_angle_z = gyro_z * dt + last_gyro_z_angle;
+
+  float alpha = 1000 / (1000 + Interval);
   float angle_x = alpha * gyro_angle_x + (1.0 - alpha) * accel_angle_x;
   float angle_y = alpha * gyro_angle_y + (1.0 - alpha) * accel_angle_y;
 
@@ -194,10 +148,16 @@ void UpdateGyro()
   vertical = ToGrad * atan(sqrt(x * x + y * y));
 }
 
-unsigned long oldTimeG;
-inline int CheckGyro()
+inline void TGyro::Delay(unsigned int ms)
 {
-  if (millis() - oldTimeG >= IntervalG)
+  unsigned long t = millis();
+  while (millis() - t < ms)
+    CheckGyro();
+}
+
+inline int TGyro::CheckGyro()
+{
+  if (millis() - lastTime >= Interval)
   {
     UpdateGyro();
     //Serial.print(millis()-oldTime);
@@ -205,13 +165,13 @@ inline int CheckGyro()
     //Serial.print(horizontal, 2);
     //Serial.print('/');
     //Serial.println(vertical, 2);
-    oldTimeG += IntervalG;
+    lastTime += Interval;
     return 1;
   }
   return 0;
 }
 
-void CalibrationGyro()
+void TGyro::CalibrationGyro()
 {
   Wire.begin();
   int error;
@@ -222,10 +182,10 @@ void CalibrationGyro()
 
   calibrate_sensors();
   set_last_read_angle_data(millis(), 0, 0, 0, 0, 0, 0);
-  oldTimeG = millis();
+  lastTime = millis();
 }
 
-int MPU6050_read(int start, uint8_t *buffer, int size)
+int TGyro::MPU6050_read(int start, uint8_t *buffer, int size)
 {
   int i, n, error;
 
@@ -250,7 +210,7 @@ int MPU6050_read(int start, uint8_t *buffer, int size)
   return (0);
 }
 
-int MPU6050_write(int start, const uint8_t *pData, int size)
+int TGyro::MPU6050_write(int start, const uint8_t *pData, int size)
 {
   int n, error;
 
@@ -270,7 +230,7 @@ int MPU6050_write(int start, const uint8_t *pData, int size)
   return (0);
 }
 
-int MPU6050_write_reg(int reg, uint8_t data)
+int TGyro::MPU6050_write_reg(int reg, uint8_t data)
 {
   int error;
 

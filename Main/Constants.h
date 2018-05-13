@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef _Constants_h_
+#define _Constants_h_
 
 inline long sqr(const long x)
 {
@@ -18,12 +18,6 @@ inline int inc(int i, int d)
 #define ToGrad 57.3
 #define L1 70
 #define L2 70
-#define minRadius 20
-#define IntervalG 150
-#define IntervalB 500
-#define Lifting 30
 #define SerialX Serial1
-#define MaxSkew 5.0
-#define dS 20
 
 #endif

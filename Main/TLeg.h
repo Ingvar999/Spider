@@ -1,6 +1,6 @@
 #pragma once
-#ifndef TLEG_H
-#define TLEG_H
+#ifndef _TLeg_h_
+#define _TLeg_h_
 
 #include <Servo.h>
 
@@ -8,6 +8,7 @@ class TLeg
 {
   public:
     byte R;
+
     void Init(int, int, int, int, int, int, int);
     int SetHeight(int);
     int GetHeight() {
@@ -21,7 +22,7 @@ class TLeg
     }
     int WriteAngle(int , int);
     void UpdateAngle(int& , int&);
-    int ForStep(int,int,int);
+    int ForStep(int, int, int);
 
   private:
     Servo servo1, servo2;

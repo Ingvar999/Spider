@@ -1,13 +1,18 @@
 #pragma once
-#ifndef TSPIDER_H
-#define TSPIDER_H
+#ifndef _TSpider_h_
+#define _TSpider_h_
 
 #include "TLeg.h"
+#include "TGyro.h"
+#include "TESP8266.h"
 
 class TSpider
 {
   public:
+    TGyro gyro;
+    TESP8266 esp;
     bool balancing = false;
+
     void Init(int, int, int, int, int, int = 0, int = 0, int = 10);
     void UpdateAllAngles();
     int ChangeHeight(int);
@@ -24,14 +29,26 @@ class TSpider
     int CheckBalance();
     void BasicPosition();
     int Move(int direction);
+    long ReadVcc();
+    void CheckVcc();
   private:
+    static const byte a = 85;
+    static const byte minRadius = 20;
+    static const byte lifting = 30;
+    static const byte stepLength = 20;
+    static const byte motionDelaying = 10;
+    static const float maxSkew = 5;
+    static const unsigned balancingInterval = 500;
+
     TLeg legs[6];
     byte contacts = 0, Radius = 30;
-    int positionH = -90, positionV = 0;
-    static const byte a = 85;// al = 15;
+    int positionH = 0, positionV = 0;
+    unsigned long int lastBalancingTime = 0;
+
     void UpdateContacts();
     int MaxHeight();
-    inline void TwoLegsUpDown(int i, int j,int a);
-    inline void ThreeLegsUpDown(int i, int j, int k, int a);
+
+    inline void TwoLegsUpDown(int i, int j, int dir);
+    inline void ThreeLegsUpDown(int i, int j, int k, int dir);
 };
 #endif
