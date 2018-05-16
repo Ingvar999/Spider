@@ -1,5 +1,5 @@
-#include "Constants.h"
 #include "TSpider.h"
+#include "Constants.h"
 
 void TSpider::Init(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
 {
@@ -84,6 +84,15 @@ int TSpider::MaxHeight()
   int res = legs[0].GetHeight();
   for (int i = 1; i < 6; ++i)
     if (legs[i].GetHeight() > res)
+      res = legs[i].GetHeight();
+  return res;
+}
+
+int TSpider::MinHeight()
+{
+  int res = legs[0].GetHeight();
+  for (int i = 1; i < 6; ++i)
+    if (legs[i].GetHeight() < res)
       res = legs[i].GetHeight();
   return res;
 }
@@ -380,7 +389,17 @@ void TSpider::CheckVcc()
     BasicPosition();
 }
 
-
+String TSpider::GetInfoInHtml(long result){
+  String html;
+  html += "<tr><td>Радиус: </td><td>"+String(Radius)+"</td></tr>";
+  html += "<tr><td>Высота: </td><td>"+String(MinHeight())+"</td></tr>";
+  html += "<tr><td>Балансировка: </td><td>"+String(balancing)+"</td></tr>";
+  html += "<tr><td>Модуль наклона: </td><td>"+String(gyro.vertical)+"</td></tr>";
+  html += "<tr><td>Направление наклона: </td><td>"+String(gyro.horizontal)+"</td></tr>";
+  html += "<tr><td>Напряжение: </td><td>"+String(ReadVcc())+"</td></tr>";
+  html += "<tr><td>Результат: </td><td>"+String(result)+"</td></tr>";
+  return html;
+}
 
 
 

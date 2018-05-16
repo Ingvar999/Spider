@@ -1,6 +1,6 @@
 #include <Wire.h>
-#include "Constants.h"
 #include "TGyro.h"
+#include "Constants.h"
 
 #define MPU6050_ACCEL_XOUT_H       0x3B
 #define MPU6050_PWR_MGMT_1         0x6B
@@ -233,8 +233,6 @@ int TGyro::MPU6050_write(int start, const uint8_t *pData, int size)
 int TGyro::MPU6050_write_reg(int reg, uint8_t data)
 {
   int error;
-
   error = MPU6050_write(reg, &data, 1);
-
   return (error);
 }

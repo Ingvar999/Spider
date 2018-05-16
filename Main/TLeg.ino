@@ -1,5 +1,5 @@
-#include "Constants.h"
 #include "TLeg.h"
+#include "Constants.h"
 
 void TLeg::Init(int _pos, int pinCont, int pin1, int pin2, int pog1, int pog2, int _qR)
 {

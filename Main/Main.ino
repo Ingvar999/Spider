@@ -13,42 +13,40 @@ void setup()
   Spider.Init(5, -60, 38, 5, 13, -4, -3, 7);
   Serial.begin(250000);
   Serial2.begin(250000);
-  Spider.esp.Init();
+  Spider.esp.Init(&Serial1);
   Spider.gyro.CalibrationGyro();
   Spider.UpdateAllAngles();
 }
 
 void loop()
 {
+  unsigned long t = millis();
   Spider.CheckVcc();
   Spider.gyro.CheckGyro();
   Spider.CheckBalance();
-  if (SerialX.available() > 0)
+  if (Spider.esp.hasData())
   {
     int args[2];
+    long result = 0;
     switch (Spider.esp.ReadCommand(args))
     {
       case 'd':
-        SerialX.println(Spider.SetRadius(SerialX.readStringUntil('.').toInt()));
+        result = Spider.SetRadius(args[0]);
         break;
       case 'w':
-        Spider.ChangeHeight(SerialX.readStringUntil('.').toInt());
+        result = Spider.ChangeHeight(args[0]);
         break;
-      case 'r': {
-          byte temp = Spider.ReadContacts();
-          for (int i = 0; i < 6; ++i)
-            SerialX.print((temp & bit(i)) != 0);
-          SerialX.println();
-        }
+      case 'r': 
+        result = Spider.ReadContacts();
         break;
       case 'g':
-        SerialX.println(Spider.toContacts());
+        result = Spider.toContacts();
         break;
       case 't':
-        SerialX.println(Spider.FixedTurn(SerialX.readStringUntil('.').toInt()));
+        result = Spider.FixedTurn(args[0]);
         break;
       case 'y':
-        SerialX.println(Spider.Turn(SerialX.readStringUntil('.').toInt()));
+        result = Spider.Turn(args[0]);
         break;
       case 'b':
         Spider.balancing = !Spider.balancing;
@@ -57,13 +55,21 @@ void loop()
         Spider.BasicPosition();
         break;
       case 'm':
-        SerialX.println(Spider.Move(SerialX.readStringUntil('.').toInt()));
+        result = Spider.Move(args[0]);
         break;
       case 'v':
-        SerialX.println(Spider.ReadVcc());
+        result = Spider.ReadVcc();
+        break;
+      default:
+        result = 9;
         break;
     }
+    if (Spider.esp.isHttp)
+      Spider.esp.SendHttpAnswer(Spider.GetInfoInHtml(result));
+    else
+      Spider.esp.SendTcpAnswer(result);
   }
+  Serial.println(millis() - t);
 }
 
 

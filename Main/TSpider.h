@@ -11,6 +11,7 @@ class TSpider
   public:
     TGyro gyro;
     TESP8266 esp;
+    
     bool balancing = false;
 
     void Init(int, int, int, int, int, int = 0, int = 0, int = 10);
@@ -31,6 +32,7 @@ class TSpider
     int Move(int direction);
     long ReadVcc();
     void CheckVcc();
+    String GetInfoInHtml(long res);
   private:
     static const byte a = 85;
     static const byte minRadius = 20;
@@ -47,6 +49,7 @@ class TSpider
 
     void UpdateContacts();
     int MaxHeight();
+    int MinHeight();
 
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
