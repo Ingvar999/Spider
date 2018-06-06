@@ -14,15 +14,13 @@ void setup()
   Serial.begin(250000);
   Serial2.begin(250000);
   Spider.esp.Init(&Serial1);
-  Spider.gyro.CalibrationGyro();
   Spider.UpdateAllAngles();
 }
 
 void loop()
 {
-  unsigned long t = millis();
+  //unsigned long t = millis();
   Spider.CheckVcc();
-  Spider.gyro.CheckGyro();
   Spider.CheckBalance();
   if (Spider.esp.hasData())
   {
@@ -69,7 +67,7 @@ void loop()
     else
       Spider.esp.SendTcpAnswer(result);
   }
-  Serial.println(millis() - t);
+  //Serial.println(millis() - t);
 }
 
 

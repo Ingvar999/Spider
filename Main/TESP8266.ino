@@ -4,6 +4,7 @@ const String pageHtml = "<!DOCTYPE HTML>"
 "<html>" 
 "<head>"
 "<title>Spider</title>" 
+"<link rel=icon href=# type=image/x-icon>"
 "</head>" 
 "<body>"
 "<form method=post>"
@@ -29,7 +30,7 @@ void TESP8266::Init(HardwareSerial *port) {
   espSerial->find("OK");
   espSerial->println("AT+CIPSERVER=1,80");
   espSerial->find("OK");
-  espSerial->readString();
+  Serial.println(espSerial->readString());
 }
 
 char TESP8266::ReadCommand(int args[])
@@ -87,7 +88,7 @@ int TESP8266::SendData(int id, String *data) {
     espSerial->println("AT+CIPCLOSE=" + String(id));
     espSerial->find("OK");
   }
-  espSerial->readString();
+  Serial.println(espSerial->readString());
 }
 
 

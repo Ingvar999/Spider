@@ -3,13 +3,11 @@
 #define _TSpider_h_
 
 #include "TLeg.h"
-#include "TGyro.h"
 #include "TESP8266.h"
 
 class TSpider
 {
   public:
-    TGyro gyro;
     TESP8266 esp;
     
     bool balancing = false;
@@ -26,7 +24,6 @@ class TSpider
     int SetRadius(int newR);
     int Turn(int angle);
     int FixedTurn(int angle);
-    int Balance();
     int CheckBalance();
     void BasicPosition();
     int Move(int direction);
@@ -51,6 +48,7 @@ class TSpider
     int MaxHeight();
     int MinHeight();
 
+    int Balance(struct Angels *angels);
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
 };

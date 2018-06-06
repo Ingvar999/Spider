@@ -18,6 +18,5 @@ inline int inc(int i, int d)
 #define ToGrad 57.3
 #define L1 70
 #define L2 70
-#define SerialX Serial1
 
 #endif

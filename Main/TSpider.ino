@@ -1,5 +1,6 @@
 #include "TSpider.h"
 #include "Constants.h"
+#include "AngelsStruct.h"
 
 void TSpider::Init(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
 {
@@ -26,7 +27,6 @@ void TSpider::UpdateAllAngles()
       done &= legs[i].WriteAngle(newAngles[j], newAngles[j + 1]);
       j += 2;
     }
-    gyro.CheckGyro();
     delay(motionDelaying);
   } while (!done);
   delete[] newAngles;
@@ -186,7 +186,7 @@ int TSpider::Turn(int angle)
         legs[i].R = Radius;
         newVal[i] = 90;
       }
-      gyro.Delay(2000);
+      delay(2000);
       Serial2.write('w');
       Serial2.write(newVal, 7);
       UpdateAllAngles();
@@ -231,7 +231,7 @@ int TSpider::FixedTurn(int angle)
         UpdateAllAngles();
         ThreeLegsUpDown( i, i + 2, i + 4, 1);
         toContacts();
-        gyro.Delay(100);
+        delay(100);
       }
       for (int i = 0; i < 6; ++i)
       {
@@ -251,7 +251,7 @@ int TSpider::FixedTurn(int angle)
     return error;
 }
 
-int TSpider::Balance()
+int TSpider::Balance(struct Angels *angels)
 {
   int error = toContacts();
   if (error == 0)
@@ -260,10 +260,10 @@ int TSpider::Balance()
     //SerialX.print(" / ");
     //SerialX.println(vertical);
     int dh = 0;
-    float tanV = tan(gyro.vertical * ToRad), tanPV = tan(positionV * ToRad);
+    float tanV = tan(angels->vertical * ToRad), tanPV = tan(positionV * ToRad);
     for (int i = 0; i < 6; ++i)
     {
-      dh = round((Radius + a) * (cos((legs[i].GetPosition() - gyro.horizontal) * ToRad) * tanV -
+      dh = round((Radius + a) * (cos((legs[i].GetPosition() - angels->horizontal) * ToRad) * tanV -
                                  cos((legs[i].GetPosition() - positionH) * ToRad) * tanPV));
       error |= legs[i].SetHeight(legs[i].GetHeight() + dh);
     }
@@ -280,10 +280,12 @@ int TSpider::CheckBalance()
   int error = 0;
   if (millis() - lastBalancingTime > balancingInterval)
   {
-    if (balancing && ((abs(gyro.vertical - positionV) > maxSkew || abs(gyro.horizontal - positionH) > 4 * maxSkew && positionV != 0)))
+    struct Angels *angels = ReadGyro();
+    if (balancing && ((abs(angels->vertical - positionV) > maxSkew ||
+                       abs(angels->horizontal - positionH) > 4 * maxSkew && positionV != 0)))
       if (!GetContacts())
         balancing = false;
-      else if (error = Balance())
+      else if (error = Balance(angels))
         balancing = false;
     lastBalancingTime = millis();
   }
@@ -300,8 +302,7 @@ int TSpider::Move(int direction)
         return 3;
     byte Val[7] = {90, 90, 90, 90, 90, 90, 10};
     int i, a = 0;
-    SerialX.readString();
-    while (SerialX.available() <= 0)
+    while (!esp.hasData())
     {
       ThreeLegsUpDown(a, a + 2, a + 4, -1);
 
@@ -316,10 +317,10 @@ int TSpider::Move(int direction)
 
       ThreeLegsUpDown(a, a + 2, a + 4, 1);
       toContacts();
-      gyro.Delay(50);
+      delay(50);
       a = (a + 1) % 2;
     }
-    SerialX.read();
+    esp.Clear();
     ThreeLegsUpDown(0, 2, 4, -1);
     for (i = 0; i < 6; i += 2)
     {
@@ -330,7 +331,7 @@ int TSpider::Move(int direction)
     Serial2.write(Val, 7);
     UpdateAllAngles();
     ThreeLegsUpDown(0, 2, 4, 1);
-    gyro.Delay(50);
+    delay(50);
     ThreeLegsUpDown(1, 3, 5, -1);
     for (i = 1; i < 6; i += 2)
     {
@@ -373,7 +374,7 @@ long TSpider::ReadVcc()
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
 #endif
 
-  gyro.Delay(75);
+  delay(75);
   ADCSRA |= _BV(ADSC);
   while (bit_is_set(ADCSRA, ADSC));
   uint8_t low  = ADCL;
@@ -389,17 +390,31 @@ void TSpider::CheckVcc()
     BasicPosition();
 }
 
-String TSpider::GetInfoInHtml(long result){
-  String html;
-  html += "<tr><td>Радиус: </td><td>"+String(Radius)+"</td></tr>";
-  html += "<tr><td>Высота: </td><td>"+String(MinHeight())+"</td></tr>";
-  html += "<tr><td>Балансировка: </td><td>"+String(balancing)+"</td></tr>";
-  html += "<tr><td>Модуль наклона: </td><td>"+String(gyro.vertical)+"</td></tr>";
-  html += "<tr><td>Направление наклона: </td><td>"+String(gyro.horizontal)+"</td></tr>";
-  html += "<tr><td>Напряжение: </td><td>"+String(ReadVcc())+"</td></tr>";
-  html += "<tr><td>Результат: </td><td>"+String(result)+"</td></tr>";
-  return html;
+String TSpider::GetInfoInHtml(long result) {
+  struct Angels *angels = ReadGyro();
+  return
+    "<tr><td>Радиус: </td><td>" + String(Radius) + "</td></tr>"
+    "<tr><td>Высота: </td><td>" + String(MinHeight()) + "</td></tr>"
+    "<tr><td>Балансировка: </td><td>" + (balancing ? "Вкл." : "Выкл.") + "</td></tr>"
+    "<tr><td>Модуль наклона: </td><td>" + String(angels->vertical) + "</td></tr>"
+    "<tr><td>Направление наклона: </td><td>" + String(angels->horizontal) + "</td></tr>"
+    "<tr><td>Напряжение: </td><td>" + String(ReadVcc()) + "</td></tr>"
+    "<tr><td>Результат: </td><td>" + String(result) + "</td></tr>";
 }
+
+struct Angels *ReadGyro() {
+  Serial2.print('r');
+  struct Angels *angels = new struct Angels;
+  Serial.println(Serial2.readBytes((byte *)angels, sizeof(struct Angels)));
+  for (int i = 0; i < sizeof(Angels); ++i)
+    Serial.println(((byte *)angels)[i]); 
+  Serial.print(angels->horizontal, 10);
+  Serial.print('/');
+  Serial.println(angels->vertical, 10);
+  return angels;
+}
+
+
 
 
 

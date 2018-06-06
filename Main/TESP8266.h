@@ -11,12 +11,16 @@ class TESP8266
     bool hasData(){
       return (espSerial->available() > 0);
     }
+    void Clear(){
+      espSerial->readString();
+    }
     char ReadCommand(int []);
     void SendHttpAnswer(String info);
     void SendTcpAnswer(long res);
-    int SendData(int id, String *data);
   private:
     HardwareSerial *espSerial;
     byte lastId;
+
+    int SendData(int id, String *data);
 };
 #endif
