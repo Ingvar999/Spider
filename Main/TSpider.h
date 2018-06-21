@@ -51,5 +51,6 @@ class TSpider
     int Balance(struct Angels *angels);
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
+    struct Angels *ReadGyro();
 };
 #endif

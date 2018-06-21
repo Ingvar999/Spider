@@ -19,7 +19,6 @@ void setup()
 
 void loop()
 {
-  //unsigned long t = millis();
   Spider.CheckVcc();
   Spider.CheckBalance();
   if (Spider.esp.hasData())
@@ -67,7 +66,6 @@ void loop()
     else
       Spider.esp.SendTcpAnswer(result);
   }
-  //Serial.println(millis() - t);
 }
 
 

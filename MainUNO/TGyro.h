@@ -14,7 +14,6 @@ class TGyro
     void UpdateGyro();
 
   private:
-    static const unsigned Interval = 150;
     unsigned long lastTime;
     unsigned long last_read_time;
 

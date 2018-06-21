@@ -30,7 +30,7 @@ void TESP8266::Init(HardwareSerial *port) {
   espSerial->find("OK");
   espSerial->println("AT+CIPSERVER=1,80");
   espSerial->find("OK");
-  Serial.println(espSerial->readString());
+  espSerial->readString();
 }
 
 char TESP8266::ReadCommand(int args[])
@@ -51,7 +51,7 @@ char TESP8266::ReadCommand(int args[])
       return 0;
     else
       while (!input.startsWith("command="))
-        input = espSerial->readStringUntil('\n');
+        Serial.println(input = espSerial->readStringUntil('\n'));
   }
   switch (command = input[input.indexOf('=')+1]){ // parcing
     case 'r': case 'g': case 'b': case 'z': case 'v':
@@ -88,7 +88,7 @@ int TESP8266::SendData(int id, String *data) {
     espSerial->println("AT+CIPCLOSE=" + String(id));
     espSerial->find("OK");
   }
-  Serial.println(espSerial->readString());
+  espSerial->readString();
 }
 
 

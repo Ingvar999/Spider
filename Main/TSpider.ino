@@ -288,6 +288,7 @@ int TSpider::CheckBalance()
       else if (error = Balance(angels))
         balancing = false;
     lastBalancingTime = millis();
+    delete angels;
   }
   return error;
 }
@@ -374,7 +375,7 @@ long TSpider::ReadVcc()
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
 #endif
 
-  delay(75);
+  delay(50);
   ADCSRA |= _BV(ADSC);
   while (bit_is_set(ADCSRA, ADSC));
   uint8_t low  = ADCL;
@@ -392,25 +393,22 @@ void TSpider::CheckVcc()
 
 String TSpider::GetInfoInHtml(long result) {
   struct Angels *angels = ReadGyro();
-  return
-    "<tr><td>Радиус: </td><td>" + String(Radius) + "</td></tr>"
+  String info = "<tr><td>Радиус: </td><td>" + String(Radius) + "</td></tr>"
     "<tr><td>Высота: </td><td>" + String(MinHeight()) + "</td></tr>"
     "<tr><td>Балансировка: </td><td>" + (balancing ? "Вкл." : "Выкл.") + "</td></tr>"
     "<tr><td>Модуль наклона: </td><td>" + String(angels->vertical) + "</td></tr>"
     "<tr><td>Направление наклона: </td><td>" + String(angels->horizontal) + "</td></tr>"
     "<tr><td>Напряжение: </td><td>" + String(ReadVcc()) + "</td></tr>"
     "<tr><td>Результат: </td><td>" + String(result) + "</td></tr>";
+  delete angels;
+  return info;
 }
 
-struct Angels *ReadGyro() {
+struct Angels *TSpider::ReadGyro() {
   Serial2.print('r');
   struct Angels *angels = new struct Angels;
-  Serial.println(Serial2.readBytes((byte *)angels, sizeof(struct Angels)));
-  for (int i = 0; i < sizeof(Angels); ++i)
-    Serial.println(((byte *)angels)[i]); 
-  Serial.print(angels->horizontal, 10);
-  Serial.print('/');
-  Serial.println(angels->vertical, 10);
+  memset(angels, 0, sizeof(struct Angels));
+  Serial2.readBytes((byte *)angels, sizeof(struct Angels));
   return angels;
 }
 
