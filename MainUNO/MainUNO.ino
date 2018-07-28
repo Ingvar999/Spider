@@ -4,10 +4,34 @@
 
 TGyro gyro;
 Servo myServo[6];
+
 byte val[6];
 byte newVal[7]  = {90, 90, 90, 90, 90, 90, 20};
 short pog[6] = {10, 5, -3, -3, -8, 3};
 byte pins[6] = {5, 3, 11, 10, 9, 6};
+long currentVcc;
+
+long ReadVcc()
+{
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+  ADMUX = _BV(MUX5) | _BV(MUX0);
+#elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+  ADMUX = _BV(MUX3) | _BV(MUX2);
+#else
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#endif
+
+  delay(30);
+  ADCSRA |= _BV(ADSC);
+  while (bit_is_set(ADCSRA, ADSC));
+  uint8_t low  = ADCL;
+  uint8_t high = ADCH;
+  long result = (high << 8) | low;
+  result = 1125300L / result;
+  return result;
+}
 
 void UpdateAllAngles()
 {
@@ -32,12 +56,14 @@ void UpdateAllAngles()
 void Interrupt(){
   sei();
   gyro.UpdateGyro();
+  currentVcc = ReadVcc();
 }
 
 void setup() {
   Serial.begin(250000);
-  Serial.setTimeout(500);
+  
   gyro.CalibrationGyro();
+  
   MsTimer2::set(100, Interrupt);
   MsTimer2::start();
 
@@ -60,6 +86,9 @@ void loop()
         break;
       case 'r':
         Serial.write((byte *)&gyro.angels, sizeof(struct Angels));
+        break;
+      case 'v':
+        Serial.write((byte *)&currentVcc, sizeof(currentVcc));
         break;
     }
   }

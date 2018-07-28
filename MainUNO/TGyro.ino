@@ -142,7 +142,6 @@ void TGyro::UpdateGyro()
   float gyro_angle_x = gyro_x * dt + last_x_angle;
   float gyro_angle_y = gyro_y * dt + last_y_angle;
   angels.angle_z = gyro_z * dt + last_z_angle;
-  //Serial.println(dt*1000);
 
   float unfiltered_gyro_angle_x = gyro_x * dt + last_gyro_x_angle;
   float unfiltered_gyro_angle_y = gyro_y * dt + last_gyro_y_angle;
@@ -162,9 +161,6 @@ void TGyro::UpdateGyro()
  else
     angels.horizontal -= 90.0;
   angels.vertical = ToGrad * atan(sqrt(x * x + y * y));
-  //Serial.print(angels.horizontal, 2);
-  //Serial.print('/');
-  //Serial.println(angels.vertical, 2);
 }
 
 int TGyro::MPU6050_read(int start, uint8_t *buffer, int size)
