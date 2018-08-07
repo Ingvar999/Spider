@@ -1,9 +1,10 @@
 #include "TLeg.h"
 #include "Constants.h"
 
-void TLeg::Init(int _pos, int pinCont, int pin1, int pin2, int pog1, int pog2, int _qR)
+void TLeg::Init(int _posOnBody, int _measurePin, int pin1, int pin2, int pog1, int pog2, int _qR)
 {
-  pos = _pos;
+  posOnBody = _posOnBody;
+  measurePin = _measurePin;
   qR = _qR;
   p1 = pog1;
   p2 = pog2;
@@ -11,8 +12,6 @@ void TLeg::Init(int _pos, int pinCont, int pin1, int pin2, int pog1, int pog2, i
   servo2.attach(pin2);
   angle1 = servo1.read();
   angle2 = servo2.read();
-  contactPin = pinCont;
-  pinMode(contactPin, INPUT);
 }
 
 int TLeg::SetHeight(int newh)
@@ -26,7 +25,7 @@ int TLeg::SetHeight(int newh)
     return 1;
 }
 
-int TLeg::WriteAngle(int alpha1, int alpha2)
+int TLeg::WriteAngles(int alpha1, int alpha2)
 {
   if (alpha1 != angle1 || alpha2 != angle2)
   {
@@ -52,7 +51,7 @@ int TLeg::WriteAngle(int alpha1, int alpha2)
     return 1;
 }
 
-void TLeg::UpdateAngle(int &alpha1, int &alpha2)
+void TLeg::UpdateAngles(int &alpha1, int &alpha2)
 {
   int R1 = round((float)qR / 10 * (R - L2)) + L2;
   long r2 = sqr(h) + sqr(R1);
@@ -60,12 +59,16 @@ void TLeg::UpdateAngle(int &alpha1, int &alpha2)
   alpha2 = 180 - round((acos((float)(h) / sqrt(r2)) + acos((float)(r2 + sqr(L1) - sqr(L2)) / (2 * sqrt(r2) * L1))) * ToGrad);
 }
 
-int TLeg::ForStep(int d, int a, int Radius)
+int TLeg::CalculateForStep(int d, int dir, int Radius)
 {
-  a -= pos;
-  int newR = round(sqrt(Radius * Radius + d * d + 2 * d * Radius * cos(a * ToRad)));
+  dir -= posOnBody;
+  int newR = round(sqrt(Radius * Radius + d * d + 2 * d * Radius * cos(dir * ToRad)));
   R = Radius + round(0.6 * (newR - Radius));
-  return 90 - round(ToGrad * asin(-d * sin(a * ToRad) / newR));
+  return 90 - round(ToGrad * asin(-d * sin(dir * ToRad) / newR));
+}
+
+inline int TLeg::ReadVoltage(){
+  return analogRead(measurePin);
 }
 
 

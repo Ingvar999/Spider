@@ -1,8 +1,22 @@
 #include "TSpider.h"
 #include "Constants.h"
-#include "AngelsStruct.h"
 
-void TSpider::Init(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
+inline void TSpider::PowerOn() {
+  digitalWrite(powerPin, HIGH);
+}
+
+inline void TSpider::PowerOff() {
+  digitalWrite(powerPin, LOW);
+}
+
+void TSpider::Init() {
+  pinMode(powerPin, OUTPUT);
+  PowerOff();
+
+  analogReference(INTERNAL1V1);
+}
+
+void TSpider::InitLeg(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
 {
   legs[i].Init(_pos, pinCont, pin1, pin2, pog1, pog2, _qR);
   legs[i].R = Radius;
@@ -14,7 +28,7 @@ void TSpider::UpdateAllAngles()
   int j = 0, i = 0;
   for (i = 0; i < 6; i++)
   {
-    legs[i].UpdateAngle(newAngles[j], newAngles[j + 1]);
+    legs[i].UpdateAngles(newAngles[j], newAngles[j + 1]);
     j += 2;
   }
   int done = 1;
@@ -24,7 +38,7 @@ void TSpider::UpdateAllAngles()
     done = 1;
     for (i = 0; i < 6; i++)
     {
-      done &= legs[i].WriteAngle(newAngles[j], newAngles[j + 1]);
+      done &= legs[i].WriteAngles(newAngles[j], newAngles[j + 1]);
       j += 2;
     }
     delay(motionDelaying);
@@ -42,41 +56,17 @@ int TSpider::ChangeHeight(int dH)
   return error;
 }
 
-int TSpider::GetContacts()
-{
-  UpdateContacts();
-  return contacts;
-}
-
-byte TSpider::ReadContacts()
-{
-  byte temp;
-  for (int i = 0; i < 6; ++i)
-    if (legs[i].HasContact())
-      temp |= bit(i);
-  return temp;
-}
-
 void TSpider::BasicPosition()
 {
   for (int i = 0; i < 6; i++)
     legs[i].SetHeight(0);
   UpdateAllAngles();
-  byte value[7] = {90, 90, 90, 90, 90, 90, 15};
-  Serial2.write('w');
-  Serial2.write(value, 7);
+  byte values[7] = {90, 90, 90, 90, 90, 90, 15};
+  board.TurnLegs(values);
   for (int i = 0; i < 6; i++)
     legs[i].R = 30;
   UpdateAllAngles();
   Radius = 30;
-}
-
-void TSpider::UpdateContacts()
-{
-  contacts = 0;
-  for (int i = 0; i < 6; ++i)
-    if (legs[i].HasContact())
-      ++contacts;
 }
 
 int TSpider::MaxHeight()
@@ -97,34 +87,12 @@ int TSpider::MinHeight()
   return res;
 }
 
-int TSpider::toContacts()
-{
-  UpdateContacts();
-  int oldC = contacts;
-  while (contacts < 6)
-  {
-    for (int i = 0; i < 6; ++i)
-    {
-      if (!legs[i].HasContact())
-        if (legs[i].SetHeight(legs[i].GetHeight() + 1) != 0)
-          return 1;
-    }
-    UpdateAllAngles();
-    UpdateContacts();
-    if (contacts < oldC)
-      return 2;
-    else
-      oldC = contacts;
-  }
-  return 0;
-}
-
 int TSpider::SetRadius(int newR)
 {
   int error = 0;
   if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(MaxHeight()) + sqr(newR)))
   {
-    UpdateContacts();
+    //UpdateContacts();
     if (contacts == 0)
     {
       for (int i = 0; i < 6; ++i)
@@ -133,7 +101,7 @@ int TSpider::SetRadius(int newR)
       Radius = newR;
       return 0;
     }
-    else if ((error = toContacts()) == 0)
+    else if ((error /*= toContacts()*/) == 0)
     {
       for (int i = 0; i < 6; ++i)
         if (legs[i].GetHeight() < lifting)
@@ -146,7 +114,7 @@ int TSpider::SetRadius(int newR)
 
         ThreeLegsUpDown( i, i + 2, i + 4, 1);
 
-        error = toContacts();
+        //error = toContacts();
       }
       Radius = newR;
       return error;
@@ -160,7 +128,7 @@ int TSpider::SetRadius(int newR)
 
 int TSpider::Turn(int angle)
 {
-  int error = toContacts();
+  int error; // = toContacts();
   if (error == 0)
   {
     int angle3, x, newR;
@@ -175,20 +143,18 @@ int TSpider::Turn(int angle)
         turnAngle = 180 - turnAngle;
       newR = Radius + round(0.6 * (newR - Radius));
       //newR += round(al * cos(turnAngle*ToRad));
-      byte newVal[7] = {turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, 7};
+      byte values[7] = {turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, 7};
       for (int i = 0; i < 6; ++i)
         legs[i].R = newR;
-      Serial2.write('w');
-      Serial2.write(newVal, 7);
+      board.TurnLegs(values);
       UpdateAllAngles();
       for (int i = 0; i < 6; ++i)
       {
         legs[i].R = Radius;
-        newVal[i] = 90;
+        values[i] = 90;
       }
       delay(2000);
-      Serial2.write('w');
-      Serial2.write(newVal, 7);
+      board.TurnLegs(values);
       UpdateAllAngles();
 
       return 0;
@@ -202,7 +168,7 @@ int TSpider::Turn(int angle)
 
 int TSpider::FixedTurn(int angle)
 {
-  int error = toContacts();
+  int error;// = toContacts();
   if (error == 0)
   {
     for (int i = 0; i < 6; ++i)
@@ -219,27 +185,25 @@ int TSpider::FixedTurn(int angle)
       newR = Radius + round(0.6 * (newR - Radius));
       if (sign)
         turnAngle = 180 - turnAngle;
-      byte newVal[7] = {90, 90, 90, 90, 90, 90, 7};
+      byte values[7] = {90, 90, 90, 90, 90, 90, 7};
       for (int j = 1; j >= 0; --j)
       {
         int i = (sign ? 1 - j : j);
-        newVal[i] = newVal[i + 2] = newVal[i + 4] = turnAngle;
+        values[i] = values[i + 2] = values[i + 4] = turnAngle;
         ThreeLegsUpDown( i, i + 2, i + 4, -1);
-        Serial2.write('w');
-        Serial2.write(newVal, 7);
+        board.TurnLegs(values);
         legs[i].R = legs[i + 2].R = legs[i + 4].R = newR;
         UpdateAllAngles();
         ThreeLegsUpDown( i, i + 2, i + 4, 1);
-        toContacts();
+//        toContacts();
         delay(100);
       }
       for (int i = 0; i < 6; ++i)
       {
         legs[i].R = Radius;
-        newVal[i] = 90;
+        values[i] = 90;
       }
-      Serial2.write('w');
-      Serial2.write(newVal, 7);
+      board.TurnLegs(values);
       UpdateAllAngles();
 
       return 0;
@@ -251,19 +215,16 @@ int TSpider::FixedTurn(int angle)
     return error;
 }
 
-int TSpider::Balance(struct Angels *angels)
+int TSpider::Balance()
 {
-  int error = toContacts();
+  int error;// = toContacts();
   if (error == 0)
   {
-    //SerialX.print(horizontal);
-    //SerialX.print(" / ");
-    //SerialX.println(vertical);
     int dh = 0;
-    float tanV = tan(angels->vertical * ToRad), tanPV = tan(positionV * ToRad);
+    float tanV = tan(board.position.vertical * ToRad), tanPV = tan(positionV * ToRad);
     for (int i = 0; i < 6; ++i)
     {
-      dh = round((Radius + a) * (cos((legs[i].GetPosition() - angels->horizontal) * ToRad) * tanV -
+      dh = round((Radius + a) * (cos((legs[i].GetPosition() - board.position.horizontal) * ToRad) * tanV -
                                  cos((legs[i].GetPosition() - positionH) * ToRad) * tanPV));
       error |= legs[i].SetHeight(legs[i].GetHeight() + dh);
     }
@@ -280,44 +241,42 @@ int TSpider::CheckBalance()
   int error = 0;
   if (millis() - lastBalancingTime > balancingInterval)
   {
-    struct Angels *angels = ReadGyro();
-    if (balancing && ((abs(angels->vertical - positionV) > maxSkew ||
-                       abs(angels->horizontal - positionH) > 4 * maxSkew && positionV != 0)))
-      if (!GetContacts())
-        balancing = false;
-      else if (error = Balance(angels))
+    board.UpdatePosition();
+    if (balancing && ((abs(board.position.vertical - positionV) > maxSkew ||
+                       abs(board.position.horizontal - positionH) > 4 * maxSkew && positionV != 0)))
+//      if (!GetContacts())
+  //      balancing = false;
+      /*else*/ if (error = Balance())
         balancing = false;
     lastBalancingTime = millis();
-    delete angels;
   }
   return error;
 }
 
 int TSpider::Move(int direction)
 {
-  int error = toContacts();
+  int error;// = toContacts();
   if (error == 0)
   {
     for (int i = 0; i < 6; ++i)
       if (legs[i].GetHeight() < lifting)
         return 3;
-    byte Val[7] = {90, 90, 90, 90, 90, 90, 10};
+    byte values[7] = {90, 90, 90, 90, 90, 90, 10};
     int i, a = 0;
     while (!esp.hasData())
     {
       ThreeLegsUpDown(a, a + 2, a + 4, -1);
 
       for (i = a; i < 6; i += 2)
-        Val[i] = legs[i].ForStep(stepLength, direction, Radius);
+        values[i] = legs[i].CalculateForStep(stepLength, direction, Radius);
       for (i = (a + 1) % 2; i < 6; i += 2)
-        Val[i] = legs[i].ForStep(stepLength, 180 + direction, Radius);
+        values[i] = legs[i].CalculateForStep(stepLength, 180 + direction, Radius);
 
-      Serial2.write('w');
-      Serial2.write(Val, 7);
+      board.TurnLegs(values);
       UpdateAllAngles();
 
       ThreeLegsUpDown(a, a + 2, a + 4, 1);
-      toContacts();
+      //toContacts();
       delay(50);
       a = (a + 1) % 2;
     }
@@ -326,28 +285,31 @@ int TSpider::Move(int direction)
     for (i = 0; i < 6; i += 2)
     {
       legs[i].R = Radius;
-      Val[i] = 90;
+      values[i] = 90;
     }
-    Serial2.write('w');
-    Serial2.write(Val, 7);
+    
+    board.TurnLegs(values);
     UpdateAllAngles();
+    
     ThreeLegsUpDown(0, 2, 4, 1);
     delay(50);
     ThreeLegsUpDown(1, 3, 5, -1);
     for (i = 1; i < 6; i += 2)
     {
       legs[i].R = Radius;
-      Val[i] = 90;
+      values[i] = 90;
     }
-    Serial2.write('w');
-    Serial2.write(Val, 7);
+    
+    board.TurnLegs(values);
     UpdateAllAngles();
+    
     ThreeLegsUpDown(1, 3, 5, 1);
     return 0;
   }
   else
     return error;
 }
+
 inline void TSpider::TwoLegsUpDown(int i, int j, int dir)
 {
   legs[i].SetHeight(legs[i].GetHeight() + dir * lifting);
@@ -358,58 +320,48 @@ inline void TSpider::TwoLegsUpDown(int i, int j, int dir)
 inline void TSpider::ThreeLegsUpDown(int i, int j, int k, int dir)
 {
   legs[i].SetHeight(legs[i].GetHeight() + dir * lifting);
-  legs[j].SetHeight(legs[j].GetHeight() + dir * lifting);
-  legs[k].SetHeight(legs[k].GetHeight() + dir * lifting);
-  UpdateAllAngles();
-}
-
-long TSpider::ReadVcc()
-{
-#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-#elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
-  ADMUX = _BV(MUX5) | _BV(MUX0);
-#elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
-  ADMUX = _BV(MUX3) | _BV(MUX2);
-#else
-  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-#endif
-
-  delay(50);
-  ADCSRA |= _BV(ADSC);
-  while (bit_is_set(ADCSRA, ADSC));
-  uint8_t low  = ADCL;
-  uint8_t high = ADCH;
-  long result = (high << 8) | low;
-  result = 1125300L / result;
-  return result;
+  TwoLegsUpDown(j, k, dir);
 }
 
 void TSpider::CheckVcc()
 {
-  if (ReadVcc() < 5000)
+  if (board.GetVcc() < 5000) {
     BasicPosition();
+    PowerOff();
+  }
 }
 
-String TSpider::GetInfoInHtml(long result) {
-  struct Angels *angels = ReadGyro();
-  String info = "<tr><td>Радиус: </td><td>" + String(Radius) + "</td></tr>"
-    "<tr><td>Высота: </td><td>" + String(MinHeight()) + "</td></tr>"
-    "<tr><td>Балансировка: </td><td>" + (balancing ? "Вкл." : "Выкл.") + "</td></tr>"
-    "<tr><td>Модуль наклона: </td><td>" + String(angels->vertical) + "</td></tr>"
-    "<tr><td>Направление наклона: </td><td>" + String(angels->horizontal) + "</td></tr>"
-    "<tr><td>Напряжение: </td><td>" + String(ReadVcc()) + "</td></tr>"
-    "<tr><td>Результат: </td><td>" + String(result) + "</td></tr>";
-  delete angels;
-  return info;
+void TSpider::UpdateWorkloads() {
+  unsigned int amount[6] = {0};
+  for (int i = 0; i < 30; ++i)
+    for (int j = 0; j < 6; ++j)
+      amount[j] += legs[j].ReadVoltage();
+
+  for (int i = 0; i < 6; ++i) {
+    legs[i].workload = amount[i] / 30;
+    Serial.print(legs[i].workload);
+    Serial.print(' ');
+  }
+  Serial.println();
 }
 
-struct Angels *TSpider::ReadGyro() {
-  Serial2.print('r');
-  struct Angels *angels = new struct Angels;
-  memset(angels, 0, sizeof(struct Angels));
-  Serial2.readBytes((byte *)angels, sizeof(struct Angels));
-  return angels;
+int TSpider::ReachGround() {
+  int error = 0, done;
+  do {
+    UpdateWorkloads();
+    done = 1;
+    for (int i = 0; i < 6; ++i)
+      if (legs[i].workload < 50) {
+        done = 0;
+        error |= legs[i].SetHeight(legs[i].GetHeight() + 2);
+      }
+    if (!done)
+      UpdateAllAngles();
+      //delay(20);
+  } while ( !error && !done);
+  if (error)
+    BasicPosition();
+  return error;
 }
 
 

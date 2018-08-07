@@ -9,9 +9,9 @@ byte val[6];
 byte newVal[7]  = {90, 90, 90, 90, 90, 90, 20};
 short pog[6] = {10, 5, -3, -3, -8, 3};
 byte pins[6] = {5, 3, 11, 10, 9, 6};
-long currentVcc;
+uint32_t currentVcc;
 
-long ReadVcc()
+uint32_t ReadVcc()
 {
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
   ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
@@ -28,8 +28,8 @@ long ReadVcc()
   while (bit_is_set(ADCSRA, ADSC));
   uint8_t low  = ADCL;
   uint8_t high = ADCH;
-  long result = (high << 8) | low;
-  result = 1125300L / result;
+  uint32_t result = (high << 8) | low;
+  result = 1125300UL / result;
   return result;
 }
 

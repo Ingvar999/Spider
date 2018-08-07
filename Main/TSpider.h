@@ -4,20 +4,22 @@
 
 #include "TLeg.h"
 #include "TESP8266.h"
+#include "TSubBoard.h"
 
 class TSpider
 {
   public:
     TESP8266 esp;
-    
+    TSubBoard board;
+
     bool balancing = false;
 
-    void Init(int, int, int, int, int, int = 0, int = 0, int = 10);
+    inline void PowerOn();
+    inline void PowerOff();
+    void Init();
+    void InitLeg(int, int, int, int, int, int = 0, int = 0, int = 10);
     void UpdateAllAngles();
     int ChangeHeight(int);
-    int GetContacts();
-    byte ReadContacts();
-    int toContacts();
     int GetRadius() {
       return Radius;
     };
@@ -27,11 +29,12 @@ class TSpider
     int CheckBalance();
     void BasicPosition();
     int Move(int direction);
-    long ReadVcc();
     void CheckVcc();
-    String GetInfoInHtml(long res);
+    void UpdateWorkloads();
+    int ReachGround();
   private:
-    static const byte a = 85;
+    static const int powerPin = 40;
+    static const byte a = 85; 
     static const byte minRadius = 20;
     static const byte lifting = 30;
     static const byte stepLength = 20;
@@ -44,13 +47,11 @@ class TSpider
     int positionH = 0, positionV = 0;
     unsigned long int lastBalancingTime = 0;
 
-    void UpdateContacts();
     int MaxHeight();
     int MinHeight();
 
     int Balance(struct Angels *angels);
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
-    struct Angels *ReadGyro();
 };
 #endif

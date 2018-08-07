@@ -1,9 +1,9 @@
 #pragma once
 
-#ifndef _AngelsStruct_h_
-#define _AngelsStruct_h_
+#ifndef _AnglesStruct_h_
+#define _AnglesStruct_h_
 
-struct Angels {
+struct Angles {
   float angle_z, horizontal, vertical;
 };
 
