@@ -14,8 +14,9 @@ void TLeg::Init(int _posOnBody, int _measurePin, int pin1, int pin2, int pog1, i
   angle2 = servo2.read();
 }
 
-int TLeg::SetHeight(int newh)
+int TLeg::ChangeHeight(int delta)
 {
+  int newh = h + delta;
   if ((newh >= 0) && (sqr(L1 + L2) > sqr(newh) + sqr(R)))
   {
     h = newh;

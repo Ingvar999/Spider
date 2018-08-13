@@ -11,7 +11,7 @@ class TLeg
     int workload;
 
     void Init(int, int, int, int, int, int, int);
-    int SetHeight(int);
+    int ChangeHeight(int);
     int GetHeight() {
       return h;
     };

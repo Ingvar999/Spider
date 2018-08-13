@@ -3,11 +3,12 @@
 #define _TESP8266_h_
 
 struct Request{
+  byte id;
   char requestType;
   String requiredValues;
   char command;
   int args[2];
-}
+};
 
 class TESP8266
 {
@@ -20,11 +21,11 @@ class TESP8266
   
     void Init(HardwareSerial *);
     bool ReadRequest();
+    void SendResponse(String); 
   private:
     HardwareSerial *espSerial;
-    byte lastRequestId;
 
     void ParseRequest(String data);
-    int SendData(String data);
+    void SendData(byte id, String data);
 };
 #endif

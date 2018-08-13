@@ -6,7 +6,9 @@ TSpider Spider;
 
 void Interrupt() {
   sei();
-
+  Spider.CheckVcc();
+  Spider.CheckBalance();
+  Spider.WorkloadsAlignment();
 }
 
 void setup()
@@ -25,7 +27,7 @@ void setup()
   Spider.board.Init(&Serial2);
   Spider.UpdateAllAngles();
 
-  Timer3.initialize(100000);
+  Timer3.initialize(500000);
   Timer3.attachInterrupt(Interrupt);
   Timer3.start();
 
@@ -33,50 +35,10 @@ void setup()
 }
 
 void loop()
-{
-  //Spider.CheckVcc();
-  //Spider.CheckBalance();
-  
+{ 
   if (Spider.esp.ReadRequest()){
     String result = Spider.HandleCurrentRequest();
-    Spider.esp.SendData(result);
-  }
-
-  switch ((char)Serial.read())
-  {
-    case 'd':
-      result = Spider.SetRadius(args[0]);
-      break;
-    case 'w':
-      result = Spider.ChangeHeight(args[0]);
-      break;
-    case 'r':
-      //result = Spider.ReadContacts();
-      break;
-    case 'g':
-      result = Spider.ReachGround();
-      break;
-    case 't':
-      result = Spider.FixedTurn(args[0]);
-      break;
-    case 'y':
-      result = Spider.Turn(args[0]);
-      break;
-    case 'b':
-      Spider.balancing = !Spider.balancing;
-      break;
-    case 'z':
-      Spider.BasicPosition();
-      break;
-    case 'm':
-      result = Spider.Move(args[0]);
-      break;
-    case 'v':
-      result = Spider.GetVcc();
-      break;
-    default:
-      result = 9;
-      break;
+    Spider.esp.SendResponse(result);
   }
 }
 

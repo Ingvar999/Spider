@@ -9,7 +9,7 @@ class TSubBoard
   public:
     struct Angles position;
 
-    void Init(HadwareSerial *);
+    void Init(HardwareSerial *);
     uint32_t GetVcc();
     void UpdatePosition();
     void TurnLegs(byte [7]);

@@ -12,7 +12,8 @@ class TSpider
     TESP8266 esp;
     TSubBoard board;
 
-    bool balancing = false;
+    bool balanceActive = false;
+    bool workloadsAlignemtActive = false;
 
     inline void PowerOn();
     inline void PowerOff();
@@ -32,26 +33,31 @@ class TSpider
     void CheckVcc();
     void UpdateWorkloads();
     int ReachGround();
+    int WorkloadsAlignment();
+
+    String HandleCurrentRequest();
   private:
     static const int powerPin = 40;
     static const byte a = 85; 
-    static const byte minRadius = 20;
+    static const byte minRadius = 40;
     static const byte lifting = 30;
     static const byte stepLength = 20;
     static const byte motionDelaying = 10;
     static const float maxSkew = 5;
     static const unsigned balancingInterval = 500;
+    static const int minWorkloadThreshold = 50;
+    static const float maxWorkloadDisparityRate = 0.35;
 
     TLeg legs[6];
-    byte contacts = 0, Radius = 30;
+    byte contacts = 0, Radius = minRadius;
     int positionH = 0, positionV = 0;
-    unsigned long int lastBalancingTime = 0;
 
     int MaxHeight();
     int MinHeight();
-
-    int Balance(struct Angels *angels);
+    int Balance();
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
+    int DoCommand();
+    String GetInfo();
 };
 #endif

@@ -13,6 +13,10 @@ inline int inc(int i, int d)
   return (i + d) % 6;
 }
 
+int sign(int32_t value){
+  return ((value >> 31) << 1) + 1;
+}
+
 #define Pi 3.1416
 #define ToRad 0.01745
 #define ToGrad 57.3
