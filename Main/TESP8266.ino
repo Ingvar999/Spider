@@ -1,5 +1,13 @@
 #include "TESP8266.h"
 
+inline bool TESP8266::HasData(){
+  return espSerial->available();
+}
+
+inline void TESP8266::Clear(){
+  espSerial->readString();
+}
+
 void TESP8266::Init(HardwareSerial *port) {
   espSerial = port;
   espSerial->begin(115200);
@@ -7,7 +15,7 @@ void TESP8266::Init(HardwareSerial *port) {
   espSerial->find("OK");
   espSerial->println("AT+CIPSERVER=1,80");
   espSerial->find("OK");
-  espSerial->readString();
+  Clear();
 }
 
 bool TESP8266::ReadRequest() {
@@ -28,14 +36,14 @@ bool TESP8266::ReadRequest() {
 }
 
 void TESP8266::ParseRequest(String data) {
-  if (data.length() >= 2 && (data[0] == INFO || data[0] == DO)) {
+  if (data.length() >= 2 && (data[0] == INFO || data[0] == DO || data[0] == SET)) {
     currentRequest.requestType = data[0];
     switch (currentRequest.requestType) {
       case INFO:
           currentRequest.requiredValues = data.substring(1);
         break;
-      case DO:
-        currentRequest.command = data[1];
+      case DO: case SET:
+        currentRequest.command_property = data[1];
         if (data.length() > 2){
           int spacePos = data.indexOf(' ');
           if (spacePos == -1)

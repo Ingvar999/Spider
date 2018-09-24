@@ -1,15 +1,4 @@
-#include <TimerThree.h>
 #include "TSpider.h"
-#include "Constants.h"
-
-TSpider Spider;
-
-void Interrupt() {
-  sei();
-  Spider.CheckVcc();
-  Spider.CheckBalance();
-  Spider.WorkloadsAlignment();
-}
 
 void setup()
 {
@@ -26,12 +15,7 @@ void setup()
   Spider.esp.Init(&Serial1);
   Spider.board.Init(&Serial2);
   Spider.UpdateAllAngles();
-
-  Timer3.initialize(500000);
-  Timer3.attachInterrupt(Interrupt);
-  Timer3.start();
-
-  Spider.PowerOn();
+  Spider.StartTimer(400);
 }
 
 void loop()

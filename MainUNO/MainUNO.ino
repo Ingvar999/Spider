@@ -56,7 +56,7 @@ void UpdateAllAngles()
 void Interrupt(){
   sei();
   gyro.UpdateGyro();
-  currentVcc = ReadVcc();
+  //currentVcc = ReadVcc();
 }
 
 void setup() {
@@ -64,7 +64,7 @@ void setup() {
   
   gyro.CalibrationGyro();
   
-  MsTimer2::set(100, Interrupt);
+  MsTimer2::set(120, Interrupt);
   MsTimer2::start();
 
   for (int i = 0; i < 6; ++i){
@@ -78,6 +78,7 @@ void loop()
 {
   if (Serial.available() > 0)
   {
+    MsTimer2::stop();
     switch ((char)Serial.read())
     {
       case 'w':
@@ -88,8 +89,10 @@ void loop()
         Serial.write((byte *)&gyro.angels, sizeof(struct Angels));
         break;
       case 'v':
+        currentVcc = ((uint32_t)analogRead(0) * 10000) >> 10;
         Serial.write((byte *)&currentVcc, sizeof(currentVcc));
         break;
     }
+    MsTimer2::start();
   }
 }

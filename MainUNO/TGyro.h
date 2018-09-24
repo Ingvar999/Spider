@@ -3,7 +3,7 @@
 #ifndef _Gyro_h_
 #define _Gyro_h_
 
-#include "AngelsStruct.h"
+#include "AnglesStruct.h"
 
 class TGyro
 {
@@ -17,13 +17,13 @@ class TGyro
     unsigned long lastTime;
     unsigned long last_read_time;
 
-    float         last_x_angle;
-    float         last_y_angle;
-    float         last_z_angle;
+    float    last_x_angle;
+    float    last_y_angle;
+    float    last_z_angle;
 
-    float         last_gyro_x_angle;
-    float         last_gyro_y_angle;
-    float         last_gyro_z_angle;
+    float    last_gyro_x_angle;
+    float    last_gyro_y_angle;
+    float    last_gyro_z_angle;
 
     float    base_x_accel;
     float    base_y_accel;

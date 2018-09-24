@@ -2,7 +2,7 @@
 #ifndef _TSubBoard_h_
 #define _TSubBoard_h_
 
-#include "AngelsStruct.h"
+#include "AnglesStruct.h"
 
 class TSubBoard
 {

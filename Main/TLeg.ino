@@ -60,12 +60,12 @@ void TLeg::UpdateAngles(int &alpha1, int &alpha2)
   alpha2 = 180 - round((acos((float)(h) / sqrt(r2)) + acos((float)(r2 + sqr(L1) - sqr(L2)) / (2 * sqrt(r2) * L1))) * ToGrad);
 }
 
-int TLeg::CalculateForStep(int d, int dir, int Radius)
+int TLeg::CalculateForStep(int d, int direction, int Radius)
 {
-  dir -= posOnBody;
-  int newR = round(sqrt(Radius * Radius + d * d + 2 * d * Radius * cos(dir * ToRad)));
+  direction -= posOnBody;
+  int newR = round(sqrt(Radius * Radius + d * d + 2 * d * Radius * cos(direction * ToRad)));
   R = Radius + round(0.6 * (newR - Radius));
-  return 90 - round(ToGrad * asin(-d * sin(dir * ToRad) / newR));
+  return 90 - round(ToGrad * asin(-d * sin(direction * ToRad) / newR));
 }
 
 inline int TLeg::ReadVoltage(){
