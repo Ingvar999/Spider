@@ -4,6 +4,8 @@
 
 void ControlServices() {
   sei();
+  //Serial.println(Spider.sonar->ping_cm());
+  Spider.CheckLight();
   Spider.CheckVcc();
   if (Spider.PositionAlignment() ||
       Spider.WorkloadsAlignment() ||
@@ -25,7 +27,11 @@ void TSpider::Init() {
   pinMode(powerPin, OUTPUT);
   PowerOff();
 
+  pinMode(lightDetectionPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH);
   analogReference(INTERNAL1V1);
+  sonar = new NewPing(trigPin, echoPin, 150);
 }
 
 void TSpider::StartTimer(unsigned long miliseconds) {
@@ -571,32 +577,23 @@ int TSpider::SetProperty() {
   return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void TSpider::CheckLight(){
+  static int stableCounter = 0;
+  static const int maxCount = 4;
+  static bool isLightning = false;
+  if (!digitalRead(lightDetectionPin)){
+    if (isLightning){
+      if (++stableCounter == maxCount){
+        isLightning = false;
+        digitalWrite(ledPin, LOW);
+        stableCounter = 0;
+      }
+    }
+  }
+  else{
+    if (!isLightning){
+      isLightning = true;
+      digitalWrite(ledPin, HIGH);
+    }
+  }
+}

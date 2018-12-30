@@ -2,6 +2,7 @@
 #ifndef _TSpider_h_
 #define _TSpider_h_
 
+#include <NewPing.h>
 #include "TLeg.h"
 #include "TESP8266.h"
 #include "TSubBoard.h"
@@ -11,6 +12,7 @@ class TSpider
   public:
     TESP8266 esp;
     TSubBoard board;
+    NewPing *sonar;
 
     bool balanceActive = false;
     bool workloadsAlignemtActive = false;
@@ -36,6 +38,7 @@ class TSpider
     void BasicPosition();
     int Move(int direction);
     void CheckVcc();
+    void CheckLight();
     void UpdateWorkloads();
     int ReachGround();
     int WorkloadsAlignment();
@@ -45,12 +48,16 @@ class TSpider
     String HandleCurrentRequest();
   private:
     static const int powerPin = 40;
+    static const int ledPin = 52;
+    static const int echoPin = 43;
+    static const int trigPin = 45;
+    static const int lightDetectionPin = 47;
     static const byte a = 85; 
     static const byte minRadius = 40;
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
-    static const byte motionDelaying = 6;
+    static const byte motionDelaying = 4;
     static const int stepDelaying = 350;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
