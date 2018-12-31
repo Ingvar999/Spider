@@ -2,6 +2,17 @@
 #include "TSpider.h"
 #include "Constants.h"
 
+void TSpider::Wander(){
+  if (SetRadius(50) == 0){
+    if (GetUp(40) == 0){
+      while (Move(majorDirection) == 0){
+        while (FixedTurn(60) == 0 && !isValidDistance());
+      }
+    }
+  }
+  BasicPosition();
+}
+
 void ControlServices() {
   sei();
   //Serial.println(Spider.sonar->ping_cm());
@@ -29,7 +40,6 @@ void TSpider::Init() {
 
   pinMode(lightDetectionPin, INPUT);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
   analogReference(INTERNAL1V1);
   sonar = new NewPing(trigPin, echoPin, 150);
 }
@@ -258,7 +268,7 @@ int TSpider::Move(int direction)
   errno = 0;
   Timer3.stop();
   balanceActive = false;
-  while (!esp.HasData() && !errno)
+  while (!esp.HasData() && !errno && isValidDistance())
   {
     ThreeLegsUpDown(a, a + 2, a + 4, -1);
     for (i = a; i < 6; i += 2)
@@ -332,7 +342,7 @@ void TSpider::CheckVcc()
 {
   if (checkVccActive)
     if (powerOn) {
-      if (board.GetVcc() < 5500) {
+      if (board.GetVcc() < 5300) {
         BasicPosition();
         PowerOff();
         powerOn = false;

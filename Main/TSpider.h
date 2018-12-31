@@ -44,6 +44,7 @@ class TSpider
     int WorkloadsAlignment();
     int GetUp(int);
     int HeightControl();
+    void Wander();
 
     String HandleCurrentRequest();
   private:
@@ -57,11 +58,13 @@ class TSpider
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
-    static const byte motionDelaying = 4;
-    static const int stepDelaying = 350;
+    static const byte motionDelaying = 6;
+    static const int stepDelaying = 300;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
     static const float maxWorkloadDisparityRate = 0.35;
+    static const int majorDirection = 150;
+    static const int minDistance = 30;
 
     TLeg legs[6];
     byte Radius = minRadius, height = 0;
@@ -75,6 +78,7 @@ class TSpider
     int DoCommand();
     String GetInfo();
     int SetProperty();
+    bool isValidDistance(){int dist = sonar->ping_cm(); return (dist == 0 || dist > minDistance);}
 };
 
 TSpider Spider;

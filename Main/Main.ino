@@ -18,7 +18,9 @@ void setup()
 }
 
 void loop()
-{ 
+{
+  delay(1000);
+  Spider.Wander();
   if (Spider.esp.ReadRequest()){
     String result = Spider.HandleCurrentRequest();
     Spider.esp.SendResponse(result);
