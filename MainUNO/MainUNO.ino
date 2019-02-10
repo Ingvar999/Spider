@@ -86,6 +86,7 @@ void loop()
         UpdateAllAngles();
         break;
       case 'r':
+        gyro.UpdateGyro();
         Serial.write((byte *)&gyro.angels, sizeof(struct Angels));
         break;
       case 'v':

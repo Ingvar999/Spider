@@ -1,6 +1,4 @@
 #pragma once
-#ifndef _TESP8266_h_
-#define _TESP8266_h_
 
 struct Request{
   byte id;
@@ -31,4 +29,3 @@ class TESP8266
     void ParseRequest(String data);
     void SendData(byte id, String data);
 };
-#endif

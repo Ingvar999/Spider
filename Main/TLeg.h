@@ -1,6 +1,4 @@
 #pragma once
-#ifndef _TLeg_h_
-#define _TLeg_h_
 
 #include <Servo.h>
 
@@ -29,5 +27,3 @@ class TLeg
     short  p1, p2;
     int posOnBody;
 };
-
-#endif

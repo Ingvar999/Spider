@@ -1,6 +1,4 @@
 #pragma once
-#ifndef _TSubBoard_h_
-#define _TSubBoard_h_
 
 #include "AnglesStruct.h"
 
@@ -17,5 +15,3 @@ class TSubBoard
   private:
     HardwareSerial *port;
 };
-
-#endif

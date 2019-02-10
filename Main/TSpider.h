@@ -1,11 +1,11 @@
 #pragma once
-#ifndef _TSpider_h_
-#define _TSpider_h_
 
 #include <NewPing.h>
 #include "TLeg.h"
 #include "TESP8266.h"
 #include "TSubBoard.h"
+#include "SimpleQueue.h"
+#include "TTask.h"
 
 class TSpider
 {
@@ -14,12 +14,13 @@ class TSpider
     TSubBoard board;
     NewPing *sonar;
 
-    bool balanceActive = false;
-    bool workloadsAlignemtActive = false;
+    bool balanceActive = true;
+    bool workloadsAlignemtActive = true;
     bool heightControlActive = true;
     bool checkVccActive = true;
+    bool lightControlActive = true;
     bool powerOn = true;
-    int errno = 0;
+    bool onSurface = false;
 
     inline void PowerOn();
     inline void PowerOff();
@@ -27,26 +28,28 @@ class TSpider
     void InitLeg(int, int, int, int, int, int = 0, int = 0, int = 10);
     void StartTimer(unsigned long);
     void UpdateAllAngles();
-    int ChangeHeight(int, bool);
+    void ChangeHeight(int, bool);
     int GetRadius() {
       return Radius;
     };
-    int SetRadius(int newR);
-    int Turn(int angle);
-    int FixedTurn(int angle);
+    void SetRadius(int newR);
+    void Turn(int angle);
+    void FixedTurn(int angle);
     int PositionAlignment();
     void BasicPosition();
-    int Move(int direction);
+    void Move(int direction);
     void CheckVcc();
     void CheckLight();
     void UpdateWorkloads();
-    int ReachGround();
+    void ReachGround();
     int WorkloadsAlignment();
     int GetUp(int);
     int HeightControl();
     void Wander();
-
+    void DoCommands();
+    String GetErrorMessage();
     String HandleCurrentRequest();
+    void UpdateOnSurface();
   private:
     static const int powerPin = 40;
     static const int ledPin = 52;
@@ -58,28 +61,30 @@ class TSpider
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
-    static const byte motionDelaying = 6;
+    static const byte motionDelaying = 5;
     static const int stepDelaying = 300;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
     static const float maxWorkloadDisparityRate = 0.35;
     static const int majorDirection = 150;
     static const int minDistance = 30;
+    static const int minWorkloadOnSurface = 100;
 
     TLeg legs[6];
+    SimpleQueue<TTask> tasksQueue;
     byte Radius = minRadius, height = 0;
-    int positionH = 0, positionV = 0;
+    int positionH = 0, positionV = 0, errno = 0;
 
     int MaxHeight();
     int MinHeight();
     int Balance();
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
-    int DoCommand();
     String GetInfo();
     int SetProperty();
     bool isValidDistance(){int dist = sonar->ping_cm(); return (dist == 0 || dist > minDistance);}
+    void SetErrno(int error);
+    void ResetErrno();
 };
 
 TSpider Spider;
-#endif

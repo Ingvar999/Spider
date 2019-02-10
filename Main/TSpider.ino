@@ -2,11 +2,14 @@
 #include "TSpider.h"
 #include "Constants.h"
 
-void TSpider::Wander(){
-  if (SetRadius(50) == 0){
-    if (GetUp(40) == 0){
-      while (Move(majorDirection) == 0){
-        while (FixedTurn(60) == 0 && !isValidDistance());
+void TSpider::Wander() {
+  SetRadius(50);
+  if (errno == OK) {
+    GetUp(40);
+    while (errno == OK) {
+      Move(majorDirection);
+      while ( errno == 0 && !isValidDistance()) {
+        FixedTurn(60);
       }
     }
   }
@@ -15,28 +18,32 @@ void TSpider::Wander(){
 
 void ControlServices() {
   sei();
-  //Serial.println(Spider.sonar->ping_cm());
   Spider.CheckLight();
   Spider.CheckVcc();
-  if (Spider.PositionAlignment() ||
-      Spider.WorkloadsAlignment() ||
-      Spider.HeightControl())
-    Spider.BasicPosition();
-  else
-    Spider.UpdateAllAngles();
+  Spider.UpdateOnSurface();
+  if (Spider.onSurface) {
+    if (!(Spider.PositionAlignment() || Spider.WorkloadsAlignment() || Spider.HeightControl()))
+      Spider.UpdateAllAngles();
+  }
+  if (Spider.esp.ReadRequest()) {
+    Spider.esp.SendResponse(Spider.HandleCurrentRequest());
+  }
 }
 
 inline void TSpider::PowerOn() {
   digitalWrite(powerPin, HIGH);
+  powerOn = true;
 }
 
 inline void TSpider::PowerOff() {
+  SetErrno(POWER_OFF);
   digitalWrite(powerPin, LOW);
+  powerOn = false;
 }
 
 void TSpider::Init() {
   pinMode(powerPin, OUTPUT);
-  PowerOff();
+  digitalWrite(powerPin, LOW);
 
   pinMode(lightDetectionPin, INPUT);
   pinMode(ledPin, OUTPUT);
@@ -60,12 +67,14 @@ void TSpider::UpdateAllAngles()
 {
   int newAngles[12] = {0};
   int j = 0, i = 0;
+  //производит рассчёт новых углов для каждой ноги
   for (i = 0; i < 6; i++)
   {
     legs[i].UpdateAngles(newAngles[j], newAngles[j + 1]);
     j += 2;
   }
   int done = 1;
+  //физически изменяет значения
   do
   {
     j = 0;
@@ -79,35 +88,45 @@ void TSpider::UpdateAllAngles()
   } while (!done);
 }
 
-int TSpider::ChangeHeight(int delta, bool changeProperty = true)
+//второй параметр используется при контроле высоты
+void TSpider::ChangeHeight(int delta, bool changeProperty = true)
 {
   int error = 0;
-  for (int i = 0; i < 6; ++i)
-    error |= legs[i].ChangeHeight(delta);
-  if (changeProperty) {
-    height += delta;
-    UpdateAllAngles();
+  if (changeProperty && !onSurface) {
+    ReachGround();
+    if (errno == OK) {
+      height = MinHeight();
+    }
   }
-  return error;
+  if (errno == OK) {
+    for (int i = 0; i < 6; ++i)
+      error |= legs[i].ChangeHeight(delta);
+    if (error) {
+      SetErrno(LEG_CANNOT_REACH_POINT);
+    }
+    else if (changeProperty) {
+      height += delta;
+      UpdateAllAngles();
+    }
+  }
 }
 
 void TSpider::BasicPosition()
 {
-  balanceActive = false;
-  workloadsAlignemtActive = false;
-
+  Timer3.stop();
   for (int i = 0; i < 6; i++)
     legs[i].ChangeHeight(-legs[i].GetHeight());
   height = 0;
   UpdateAllAngles();
 
-  byte values[7] = {90, 90, 90, 90, 90, 90, 15};
+  byte values[7] = {90, 90, 90, 90, 90, 90, 10};
   board.TurnLegs(values);
 
   Radius = minRadius;
   for (int i = 0; i < 6; i++)
     legs[i].R = Radius;
   UpdateAllAngles();
+  Timer3.start();
 }
 
 int TSpider::MaxHeight()
@@ -128,90 +147,46 @@ int TSpider::MinHeight()
   return res;
 }
 
-int TSpider::SetRadius(int newR)
+void TSpider::SetRadius(int newR)
 {
   if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(MaxHeight()) + sqr(newR)))
   {
-    UpdateWorkloads();
-    bool staying = false;
-    for (int i = 0; i < 6; ++i)
-      if (legs[i].workload > minWorkloadThreshold)
-        staying = true;
-    if (!staying)
+    if (!onSurface)
     {
       for (int i = 0; i < 6; ++i)
         legs[i].R = newR;
       UpdateAllAngles();
       Radius = newR;
-      return 0;
     }
     else {
-      if (height < minLifting)
-        return 3;
-      Timer3.stop();
-      for (int i = 0; i < 2; i++)
-      {
-        ThreeLegsUpDown( i, i + 2, i + 4, -1);
-        legs[i].R = legs[i + 2].R = legs[i + 4].R = newR;
-        UpdateAllAngles();
+      if (height >= minLifting) {
+        Timer3.stop();
+        for (int i = 0; i < 2; i++)
+        {
+          ThreeLegsUpDown( i, i + 2, i + 4, -1);
+          legs[i].R = legs[i + 2].R = legs[i + 4].R = newR;
+          UpdateAllAngles();
 
-        ThreeLegsUpDown( i, i + 2, i + 4, 1);
-        delay(stepDelaying);
-        ReachGround();
-        ControlServices();
+          ThreeLegsUpDown( i, i + 2, i + 4, 1);
+          delay(stepDelaying);
+          ReachGround();
+          ControlServices();
+        }
+        Radius = newR;
+        Timer3.start();
       }
-      Timer3.start();
-      Radius = newR;
-      return 0;
+      else
+        SetErrno(TOO_SMALL_HEIGHT);
     }
   }
   else
-    return 4;
+    SetErrno(LEG_CANNOT_REACH_POINT);
 }
 
-int TSpider::Turn(int angle)
+void TSpider::Turn(int angle)
 {
-  if (angle <= maxTurn) {
-    int angle3, x, newR;
-    angle3 = 90 - (angle >> 1);
-    x = round(3 * a * angle / 90.0);
-    newR = round(sqrt(sqr(GetRadius()) + sqr(x) - 2 * x * GetRadius() * cos(angle3 * ToRad)));
-    if (sqr(L1 + L2) > sqr(MaxHeight()) + sqr(newR))
-    {
-      bool sign = angle < 0;
-      byte turnAngle = round(ToGrad * asin(GetRadius() * sin(angle3 * ToRad) / newR));
-      if (sign)
-        turnAngle = 180 - turnAngle;
-      newR = Radius + round(0.6 * (newR - Radius));
-      byte values[7] = {turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, motionDelaying};
-      for (int i = 0; i < 6; ++i)
-        legs[i].R = newR;
-      checkVccActive = false;
-      board.TurnLegs(values);
-      UpdateAllAngles();
-      for (int i = 0; i < 6; ++i)
-      {
-        legs[i].R = Radius;
-        values[i] = 90;
-      }
-      delay(1500);
-      board.TurnLegs(values);
-      UpdateAllAngles();
-      checkVccActive = true;
-      return 0;
-    }
-    return 4;
-  }
-  return 3;
-}
-
-int TSpider::FixedTurn(int angle)
-{
-  if (height < minLifting)
-    return 3;
+  angle = (angle <= maxTurn ? angle : maxTurn);
   int angle3, x, newR;
-  int steps = ceil((float)abs(angle) / maxTurn);
-  angle = sign(angle) * maxTurn;
   angle3 = 90 - (angle >> 1);
   x = round(3 * a * angle / 90.0);
   newR = round(sqrt(sqr(GetRadius()) + sqr(x) - 2 * x * GetRadius() * cos(angle3 * ToRad)));
@@ -219,110 +194,143 @@ int TSpider::FixedTurn(int angle)
   {
     bool sign = angle < 0;
     byte turnAngle = round(ToGrad * asin(GetRadius() * sin(angle3 * ToRad) / newR));
-    newR = Radius + round(0.6 * (newR - Radius));
     if (sign)
       turnAngle = 180 - turnAngle;
-    byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
-    Timer3.stop();
-    while (steps--) {
-      for (int j = 1; j >= 0; --j)
-      {
-        int i = (sign ? 1 - j : j);
-        values[i] = values[i + 2] = values[i + 4] = turnAngle;
+    newR = Radius + round(0.6 * (newR - Radius));
+    byte values[7] = {turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, turnAngle, motionDelaying};
+    for (int i = 0; i < 6; ++i)
+      legs[i].R = newR;
+    //checkVccActive = false;
+    board.TurnLegs(values);
+    UpdateAllAngles();
+    for (int i = 0; i < 6; ++i)
+    {
+      legs[i].R = Radius;
+      values[i] = 90;
+    }
+    delay(stepDelaying);
+    board.TurnLegs(values);
+    UpdateAllAngles();
+    //checkVccActive = true;
+  }
+  else
+    SetErrno(LEG_CANNOT_REACH_POINT);
+}
 
-        ThreeLegsUpDown( i, i + 2, i + 4, -1);
+void TSpider::FixedTurn(int angle)
+{
+  if (!(height < minLifting)) {
+    int angle3, x, newR;
+    int steps = ceil((float)abs(angle) / maxTurn);
+    angle = sign(angle) * maxTurn;
+    angle3 = 90 - (angle >> 1);
+    x = round(3 * a * angle / 90.0);
+    newR = round(sqrt(sqr(GetRadius()) + sqr(x) - 2 * x * GetRadius() * cos(angle3 * ToRad)));
+    if (sqr(L1 + L2) > sqr(MaxHeight()) + sqr(newR))
+    {
+      bool sign = angle < 0;
+      byte turnAngle = round(ToGrad * asin(GetRadius() * sin(angle3 * ToRad) / newR));
+      newR = Radius + round(0.6 * (newR - Radius));
+      if (sign)
+        turnAngle = 180 - turnAngle;
+      byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
+      Timer3.stop();
+      while (steps--) {
+        for (int j = 1; j >= 0; --j)
+        {
+          int i = (sign ? 1 - j : j);
+          values[i] = values[i + 2] = values[i + 4] = turnAngle;
 
+          ThreeLegsUpDown( i, i + 2, i + 4, -1);
+
+          board.TurnLegs(values);
+          legs[i].R = legs[i + 2].R = legs[i + 4].R = newR;
+          UpdateAllAngles();
+
+          ThreeLegsUpDown( i, i + 2, i + 4, 1);
+          delay(stepDelaying);
+          ReachGround();
+        }
+        for (int i = 0; i < 6; ++i)
+        {
+          legs[i].R = Radius;
+          values[i] = 90;
+        }
+        //checkVccActive = false;
         board.TurnLegs(values);
-        legs[i].R = legs[i + 2].R = legs[i + 4].R = newR;
         UpdateAllAngles();
-
-        ThreeLegsUpDown( i, i + 2, i + 4, 1);
         delay(stepDelaying);
-        ReachGround();
+        ControlServices();
+        //checkVccActive = true;
       }
-      for (int i = 0; i < 6; ++i)
+      Timer3.start();
+    }
+    else
+      SetErrno(LEG_CANNOT_REACH_POINT);
+  }
+  else
+    SetErrno(TOO_SMALL_HEIGHT);
+}
+
+void TSpider::Move(int direction)
+{
+  if (height >= minLifting) {
+    byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
+    int i, a = 0;
+    Timer3.stop();
+    while (tasksQueue.isEmpty() && errno == OK)
+    {
+      ThreeLegsUpDown(a, a + 2, a + 4, -1);
+      for (i = a; i < 6; i += 2)
+        values[i] = legs[i].CalculateForStep(stepLength, direction, Radius);
+      for (i = (a + 1) % 2; i < 6; i += 2)
+        values[i] = legs[i].CalculateForStep(stepLength, 180 + direction, Radius);
+
+      board.TurnLegs(values);
+      UpdateAllAngles();
+
+      ThreeLegsUpDown(a, a + 2, a + 4, 1);
+      delay(stepDelaying);
+      ReachGround();
+      ControlServices();
+      a = (a + 1) % 2;
+    }
+    if (errno == OK) {
+      ThreeLegsUpDown(0, 2, 4, -1);
+
+      for (i = 0; i < 6; i += 2)
       {
         legs[i].R = Radius;
         values[i] = 90;
       }
-      checkVccActive = false;
+
       board.TurnLegs(values);
       UpdateAllAngles();
+
+      ThreeLegsUpDown(0, 2, 4, 1);
       delay(stepDelaying);
+      ReachGround();
       ControlServices();
-      checkVccActive = true;
+
+      ThreeLegsUpDown(1, 3, 5, -1);
+      for (i = 1; i < 6; i += 2)
+      {
+        legs[i].R = Radius;
+        values[i] = 90;
+      }
+
+      board.TurnLegs(values);
+      UpdateAllAngles();
+
+      ThreeLegsUpDown(1, 3, 5, 1);
+      delay(stepDelaying);
+      ReachGround();
+      ControlServices();
     }
     Timer3.start();
-    return 0;
   }
   else
-    return 4;
-}
-
-int TSpider::Move(int direction)
-{
-  if (height < minLifting)
-    return 3;
-  byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
-  int i, a = 0;
-  errno = 0;
-  Timer3.stop();
-  balanceActive = false;
-  while (!esp.HasData() && !errno && isValidDistance())
-  {
-    ThreeLegsUpDown(a, a + 2, a + 4, -1);
-    for (i = a; i < 6; i += 2)
-      values[i] = legs[i].CalculateForStep(stepLength, direction, Radius);
-    for (i = (a + 1) % 2; i < 6; i += 2)
-      values[i] = legs[i].CalculateForStep(stepLength, 180 + direction, Radius);
-
-    board.TurnLegs(values);
-    UpdateAllAngles();
-
-    ThreeLegsUpDown(a, a + 2, a + 4, 1);
-    delay(stepDelaying);
-    ReachGround();
-    ControlServices();
-    a = (a + 1) % 2;
-  }
-  if (!errno) {
-    esp.Clear();
-    ThreeLegsUpDown(0, 2, 4, -1);
-
-    for (i = 0; i < 6; i += 2)
-    {
-      legs[i].R = Radius;
-      values[i] = 90;
-    }
-
-    board.TurnLegs(values);
-    UpdateAllAngles();
-
-    ThreeLegsUpDown(0, 2, 4, 1);
-    delay(stepDelaying);
-    ReachGround();
-    ControlServices();
-
-    ThreeLegsUpDown(1, 3, 5, -1);
-    for (i = 1; i < 6; i += 2)
-    {
-      legs[i].R = Radius;
-      values[i] = 90;
-    }
-
-    board.TurnLegs(values);
-    UpdateAllAngles();
-
-    ThreeLegsUpDown(1, 3, 5, 1);
-    delay(stepDelaying);
-    ReachGround();
-    ControlServices();
-    Timer3.start();
-    balanceActive = true;
-    return 0;
-  }
-  Timer3.start();
-  return 1;
+    SetErrno(TOO_SMALL_HEIGHT);
 }
 
 inline void TSpider::TwoLegsUpDown(int i, int j, int dir)
@@ -343,17 +351,10 @@ void TSpider::CheckVcc()
   if (checkVccActive)
     if (powerOn) {
       if (board.GetVcc() < 5300) {
-        BasicPosition();
         PowerOff();
-        powerOn = false;
-        errno = 100;
       }
       else
         PowerOn();
-    }
-    else {
-      BasicPosition();
-      PowerOff();
     }
 }
 
@@ -367,23 +368,24 @@ int TSpider::Balance()
                                cos((legs[i].GetPosition() - positionH) * ToRad) * tanPV));
     error |= legs[i].ChangeHeight(dh);
   }
+  if (error) {
+    SetErrno(LEG_CANNOT_REACH_POINT);
+  }
   return error;
 }
 
 
 int TSpider::PositionAlignment()
 {
+  int error = 0;
   if (balanceActive) {
-    int error = 0;
     board.UpdatePosition();
     if ((abs(board.position.vertical - positionV) > maxSkew ||
          abs(board.position.horizontal - positionH) > 4 * maxSkew && positionV != 0))
       error = Balance();
-    if (error)
-      errno = 110 + error;
     return error;
   }
-  return 0;
+  return error;
 }
 
 void TSpider::UpdateWorkloads() {
@@ -397,7 +399,7 @@ void TSpider::UpdateWorkloads() {
   }
 }
 
-int TSpider::ReachGround() {
+void TSpider::ReachGround() {
   int error = 0;
   bool done;
   do {
@@ -414,22 +416,7 @@ int TSpider::ReachGround() {
     }
   } while ( !error && !done);
   if (error)
-    BasicPosition();
-  return error;
-}
-
-int TSpider::GetUp(int h) {
-  Timer3.stop();
-  int error = ReachGround();
-  if (!error) {
-    height = MinHeight();
-    error = ChangeHeight(h);
-    if (!error) {
-      balanceActive = true;
-      workloadsAlignemtActive = true;
-    }
-  }
-  Timer3.start();
+    SetErrno(LEG_CANNOT_REACH_POINT);
   return error;
 }
 
@@ -437,10 +424,8 @@ int TSpider::HeightControl() {
   if (heightControlActive) {
     int realHeight = MinHeight();
     if (height != realHeight) {
-      int error = ChangeHeight(height - realHeight, false);
-      if (error)
-        errno = 130 + error;
-      return error;
+      ChangeHeight(height - realHeight, false);
+      return errno;
     }
   }
   return 0;
@@ -448,7 +433,6 @@ int TSpider::HeightControl() {
 
 int TSpider::WorkloadsAlignment() {
   if (workloadsAlignemtActive) {
-    UpdateWorkloads();
     unsigned long amount = 0;
     int error = 0;
     for (int i = 0; i < 6; ++i)
@@ -458,7 +442,7 @@ int TSpider::WorkloadsAlignment() {
       error |= legs[i].ChangeHeight((int)((float)(avarageWorkload - legs[i].workload) / maxWorkloadDisparityRate / avarageWorkload));
     }
     if (error)
-      errno = 120 + error;
+      SetErrno(LEG_CANNOT_REACH_POINT);
     return error;
   }
   return 0;
@@ -467,7 +451,12 @@ int TSpider::WorkloadsAlignment() {
 String TSpider::HandleCurrentRequest() {
   switch (esp.currentRequest.requestType) {
     case esp.DO:
-      return String(DoCommand());
+      TTask task;
+      task.command = esp.currentRequest.command_property;
+      task.args[0] = esp.currentRequest.args[0];
+      task.args[1] = esp.currentRequest.args[1];
+      tasksQueue.Push(task);
+      return "Recieved";
       break;
     case esp.INFO:
       return GetInfo();
@@ -476,63 +465,59 @@ String TSpider::HandleCurrentRequest() {
       return String(SetProperty());
       break;
     case esp.ERR:
-      return "Invalid request";
+      return "Invalid request type";
       break;
   }
 }
 
-int TSpider::DoCommand() {
-  switch (esp.currentRequest.command_property)
-  {
-    case 'd':
-      return SetRadius(esp.currentRequest.args[0]);
-      break;
-    case 'w':
-      return ChangeHeight(esp.currentRequest.args[0]);
-      break;
-    case 'g':
-      return GetUp(esp.currentRequest.args[0]);
-      break;
-    case 't':
-      return FixedTurn(esp.currentRequest.args[0]);
-      break;
-    case 'y':
-      return Turn(esp.currentRequest.args[0]);
-      break;
-    case 'z':
-      BasicPosition();
-      break;
-    case 'm':
-      return Move(esp.currentRequest.args[0]);
-      break;
-      case '|':{
+void TSpider::DoCommands() {
+  if (!tasksQueue.isEmpty()) {
+
+    switch (esp.currentRequest.command_property)
+    {
+      case 'd':
+        SetRadius(esp.currentRequest.args[0]);
+        break;
+      case 'w':
+        ChangeHeight(esp.currentRequest.args[0]);
+        break;
+      case 't':
+        FixedTurn(esp.currentRequest.args[0]);
+        break;
+      case 'y':
+        Turn(esp.currentRequest.args[0]);
+        break;
+      case 'z':
+        BasicPosition();
+        break;
+      case 'm':
+        Move(esp.currentRequest.args[0]);
+        break;
+      case '|': {
           int error = legs[esp.currentRequest.args[0]].ChangeHeight(esp.currentRequest.args[1]);
           if (!error)
             UpdateAllAngles();
-          return error;
-      }
-      break;
-      case '-':{
+        }
+        break;
+      case '-': {
           int newR = (legs[esp.currentRequest.args[0]].R + esp.currentRequest.args[1]);
-          if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(legs[esp.currentRequest.args[0]].GetHeight()) + sqr(newR))){
+          if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(legs[esp.currentRequest.args[0]].GetHeight()) + sqr(newR))) {
             legs[esp.currentRequest.args[0]].R = newR;
             UpdateAllAngles();
-            return 0;
           }
-          return 1;
-      }
-      break;
-      case ')':{
+        }
+        break;
+      case ')': {
           byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
           values[esp.currentRequest.args[0]] = esp.currentRequest.args[1];
           board.TurnLegs(values);
-      }
-      break;
-    default:
-      return 9;
-      break;
+        }
+        break;
+      default:
+
+        break;
+    }
   }
-  return 0;
 }
 
 String TSpider::GetInfo() {
@@ -587,23 +572,50 @@ int TSpider::SetProperty() {
   return 0;
 }
 
-void TSpider::CheckLight(){
+void TSpider::CheckLight() {
   static int stableCounter = 0;
-  static const int maxCount = 4;
+  static const int maxCount = 3;
   static bool isLightning = false;
-  if (!digitalRead(lightDetectionPin)){
-    if (isLightning){
-      if (++stableCounter == maxCount){
-        isLightning = false;
-        digitalWrite(ledPin, LOW);
-        stableCounter = 0;
+  if (lightControlActive) {
+    if (!digitalRead(lightDetectionPin)) {
+      if (isLightning) {
+        if (++stableCounter == maxCount) {
+          isLightning = false;
+          digitalWrite(ledPin, LOW);
+          stableCounter = 0;
+        }
+      }
+    }
+    else {
+      if (!isLightning) {
+        isLightning = true;
+        digitalWrite(ledPin, HIGH);
       }
     }
   }
-  else{
-    if (!isLightning){
-      isLightning = true;
-      digitalWrite(ledPin, HIGH);
-    }
-  }
+}
+
+String TSpider::GetErrorMessage() {
+  static const String ErrorMessages[] = {"OK", "Problem with a subboard", "Low battary for moving", "Legs power is off",
+  "Too small height for step", "Leg(s) can't reach destination point"};
+  return ErrorMessages[errno];
+}
+
+void TSpider::SetErrno(int error) {
+  errno = error;
+  BasicPosition();
+  tasksQueue.Clear();
+  esp.Clear();
+}
+
+void TSpider::ResetErrno() {
+  errno = OK;
+}
+
+void TSpider::UpdateOnSurface() {
+  UpdateWorkloads();
+  int amount = 0;
+  for (int i = 0; i < 6; ++i)
+    amount = legs[i].workload;
+  onSurface = (amount % 6) > minWorkloadThreshold;
 }

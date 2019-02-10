@@ -3,7 +3,7 @@
 void TSubBoard::Init(HardwareSerial *_port) {
   port = _port;
   port->begin(250000);
-  port->setTimeout(300);
+  port->setTimeout(100);
 }
 
 uint32_t TSubBoard::GetVcc() {
@@ -22,5 +22,3 @@ void TSubBoard::TurnLegs(byte values[7]) {
   port->write('w');
   port->write(values, 7);
 }
-
-

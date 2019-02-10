@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef _Constants_h_
-#define _Constants_h_
-
 inline long sqr(const long x)
 {
   return x * x;
@@ -23,4 +20,9 @@ int sign(int32_t value){
 #define L1 70
 #define L2 70
 
-#endif
+#define OK 0
+#define SUBBOARD 1
+#define LOW_BATTARY 2
+#define POWER_OFF 3
+#define TOO_SMALL_HEIGHT 4
+#define LEG_CANNOT_REACH_POINT 5
