@@ -5,6 +5,8 @@ inline long sqr(const long x)
   return x * x;
 }
 
+inline String BoolToString(bool b){return (b ? "1" : "0");}
+
 inline int inc(int i, int d)
 {
   return (i + d) % 6;

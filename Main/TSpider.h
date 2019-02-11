@@ -28,7 +28,7 @@ class TSpider
     void InitLeg(int, int, int, int, int, int = 0, int = 0, int = 10);
     void StartTimer(unsigned long);
     void UpdateAllAngles();
-    void ChangeHeight(int, bool);
+    void ChangeHeight(int, bool = true);
     int GetRadius() {
       return Radius;
     };
@@ -43,7 +43,6 @@ class TSpider
     void UpdateWorkloads();
     void ReachGround();
     int WorkloadsAlignment();
-    int GetUp(int);
     int HeightControl();
     void Wander();
     void DoCommands();
@@ -61,7 +60,6 @@ class TSpider
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
-    static const byte motionDelaying = 5;
     static const int stepDelaying = 300;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
@@ -74,6 +72,7 @@ class TSpider
     SimpleQueue<TTask> tasksQueue;
     byte Radius = minRadius, height = 0;
     int positionH = 0, positionV = 0, errno = 0;
+    byte motionDelaying = 5;
 
     int MaxHeight();
     int MinHeight();

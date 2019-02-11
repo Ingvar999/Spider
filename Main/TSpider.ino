@@ -5,7 +5,7 @@
 void TSpider::Wander() {
   SetRadius(50);
   if (errno == OK) {
-    GetUp(40);
+    ChangeHeight(40);
     while (errno == OK) {
       Move(majorDirection);
       while ( errno == 0 && !isValidDistance()) {
@@ -472,44 +472,44 @@ String TSpider::HandleCurrentRequest() {
 
 void TSpider::DoCommands() {
   if (!tasksQueue.isEmpty()) {
-
-    switch (esp.currentRequest.command_property)
+    TTask task = tasksQueue.Pop();
+    switch (task.command)
     {
-      case 'd':
-        SetRadius(esp.currentRequest.args[0]);
+      case 'r':
+        SetRadius(task.args[0]);
         break;
-      case 'w':
-        ChangeHeight(esp.currentRequest.args[0]);
+      case 'h':
+        ChangeHeight(task.args[0]);
+        break;
+      case 'f':
+        FixedTurn(task.args[0]);
         break;
       case 't':
-        FixedTurn(esp.currentRequest.args[0]);
+        Turn(task.args[0]);
         break;
-      case 'y':
-        Turn(esp.currentRequest.args[0]);
-        break;
-      case 'z':
+      case 'b':
         BasicPosition();
         break;
       case 'm':
-        Move(esp.currentRequest.args[0]);
+        Move(task.args[0]);
         break;
       case '|': {
-          int error = legs[esp.currentRequest.args[0]].ChangeHeight(esp.currentRequest.args[1]);
+          int error = legs[task.args[0]].ChangeHeight(task.args[1]);
           if (!error)
             UpdateAllAngles();
         }
         break;
       case '-': {
-          int newR = (legs[esp.currentRequest.args[0]].R + esp.currentRequest.args[1]);
-          if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(legs[esp.currentRequest.args[0]].GetHeight()) + sqr(newR))) {
-            legs[esp.currentRequest.args[0]].R = newR;
+          int newR = (legs[task.args[0]].R + task.args[1]);
+          if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(legs[task.args[0]].GetHeight()) + sqr(newR))) {
+            legs[task.args[0]].R = newR;
             UpdateAllAngles();
           }
         }
         break;
       case ')': {
           byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
-          values[esp.currentRequest.args[0]] = esp.currentRequest.args[1];
+          values[task.args[0]] = task.args[1];
           board.TurnLegs(values);
         }
         break;
@@ -524,28 +524,43 @@ String TSpider::GetInfo() {
   String result;
   for (int i = 0; i < esp.currentRequest.requiredValues.length(); ++i) {
     switch (esp.currentRequest.requiredValues[i]) {
+      case 'h':
+        result += String(height);
+        break;
+      case 'r':
+        result += String(Radius);
+        break;
       case 'v':
         result += String(board.GetVcc());
         break;
-      case 'r':
-        UpdateWorkloads();
-        for (int i = 0; i < 6; ++i)
+      case 'w':
+        for (int i = 0; i < 5; ++i)
           result += String(legs[i].workload) + ' ';
+        result += String(legs[5].workload);
         break;
       case 'p':
         board.UpdatePosition();
         result += String(board.position.vertical) + ' ' + String(board.position.horizontal);
         break;
       case 'e':
-        result += String(errno);
-        errno = 0;
+        result += GetErrorMessage();
+        break;
+      case 'd':
+        result += String(sonar->ping_cm());
+        break;
+      case 'i':
+        result += BoolToString(powerOn);
+        break;
+      case 'c':
+        result += BoolToString(balanceActive) + BoolToString(workloadsAlignemtActive) +
+                  BoolToString(heightControlActive) + BoolToString(checkVccActive) + BoolToString(lightControlActive);
         break;
       default:
         result += "Undefined";
         break;
     }
     if (i + 1 < esp.currentRequest.requiredValues.length())
-      result += "\r\n";
+      result += "\n";
   }
   return result;
 }
@@ -553,17 +568,30 @@ String TSpider::GetInfo() {
 int TSpider::SetProperty() {
   switch (esp.currentRequest.command_property)
   {
-    case 'p':
-      powerOn = !powerOn;
+    case 'i':
+      powerOn = esp.currentRequest.args[0];
       break;
-    case 'a':
-      workloadsAlignemtActive = !workloadsAlignemtActive;
+    case 'w':
+      workloadsAlignemtActive = esp.currentRequest.args[0];
       break;
     case 'b':
-      balanceActive = !balanceActive;
+      balanceActive = esp.currentRequest.args[0];
       break;
     case 'h':
-      heightControlActive = !heightControlActive;
+      heightControlActive = esp.currentRequest.args[0];
+      break;
+    case 'c':
+      checkVccActive = esp.currentRequest.args[0];
+      break;
+    case 'l':
+      lightControlActive = esp.currentRequest.args[0];
+      break;
+    case 's':
+      motionDelaying = 50 - esp.currentRequest.args[0];
+      break;
+    case 'p':
+      positionV = esp.currentRequest.args[0];
+      positionH = esp.currentRequest.args[1];
       break;
     default:
       return 9;
@@ -597,7 +625,8 @@ void TSpider::CheckLight() {
 
 String TSpider::GetErrorMessage() {
   static const String ErrorMessages[] = {"OK", "Problem with a subboard", "Low battary for moving", "Legs power is off",
-  "Too small height for step", "Leg(s) can't reach destination point"};
+                                         "Too small height for step", "Leg(s) can't reach destination point"
+                                        };
   return ErrorMessages[errno];
 }
 
