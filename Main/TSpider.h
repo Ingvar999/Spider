@@ -80,7 +80,7 @@ class TSpider
     inline void TwoLegsUpDown(int i, int j, int dir);
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
     String GetInfo();
-    int SetProperty();
+    String SetProperty();
     bool isValidDistance(){int dist = sonar->ping_cm(); return (dist == 0 || dist > minDistance);}
     void SetErrno(int error);
     void ResetErrno();

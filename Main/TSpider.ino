@@ -456,13 +456,15 @@ String TSpider::HandleCurrentRequest() {
       task.args[0] = esp.currentRequest.args[0];
       task.args[1] = esp.currentRequest.args[1];
       tasksQueue.Push(task);
+      ResetErrno();
       return "Recieved";
       break;
     case esp.INFO:
       return GetInfo();
       break;
     case esp.SET:
-      return String(SetProperty());
+      ResetErrno();
+      return SetProperty();
       break;
     case esp.ERR:
       return "Invalid request type";
@@ -539,7 +541,6 @@ String TSpider::GetInfo() {
         result += String(legs[5].workload);
         break;
       case 'p':
-        board.UpdatePosition();
         result += String(board.position.vertical) + ' ' + String(board.position.horizontal);
         break;
       case 'e':
@@ -565,7 +566,7 @@ String TSpider::GetInfo() {
   return result;
 }
 
-int TSpider::SetProperty() {
+String TSpider::SetProperty() {
   switch (esp.currentRequest.command_property)
   {
     case 'i':
@@ -594,10 +595,10 @@ int TSpider::SetProperty() {
       positionH = esp.currentRequest.args[1];
       break;
     default:
-      return 9;
+      return "Invalid property";
       break;
   }
-  return 0;
+  return "Recieved";
 }
 
 void TSpider::CheckLight() {
