@@ -2,6 +2,7 @@
 
 ## Protocol over TCP
 ### General information
+After device is conected to "ESP8266" wi-fi network, host will available on 192.168.88.1:80.
 There are three types of requests: to perform movement, set property, get information about current state. Letters 'd', 's', 'i' define these types correspondingly.
 Each request ends with symbol '\n' and starts with request type. All parameters are int.
 
@@ -30,7 +31,7 @@ Identifier of property | Parameters | Range | Example
 'p' - Set required position for balancing| 1. Vertical deviation 2. Direction| 1. 0 .. 20 2. -180 .. 180| "sp5 90\n"
 
 ### Information requests
-One request can contain set of values. Each returned value ends with symbol '\n'. Example of request - "ierhv\n, example of returned value - "OK\n50\n45\n7900\n".
+One request can contain set of values. Each returned value ends with symbol '\n'. Example of request - "ierhv\n", example of returned value - "OK\n50\n45\n7900\n".
 
 Identifier of value | Range | Example
 --------------------|-------|--------
