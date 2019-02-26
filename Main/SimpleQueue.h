@@ -8,6 +8,10 @@ class SimpleQueue
       return count == 0;
     }
 
+    bool isFull(){
+      return count == maxSize;
+    }
+
     void Clear(){
       count = rPos = wPos = 0;
     }

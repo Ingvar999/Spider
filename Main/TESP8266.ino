@@ -21,8 +21,9 @@ void TESP8266::Init(HardwareSerial *port) {
 bool TESP8266::ReadRequest() {
   if (espSerial->available() > 0) {
     String data = espSerial->readStringUntil('\n');
-    while ((espSerial->available() > 0) && !data.startsWith("+IPD"))
+    while ((espSerial->available() > 0) && !data.startsWith("+IPD")){
       data = espSerial->readStringUntil('\n');
+    }
     if (data.startsWith("+IPD")) {
       currentRequest.id = data[5] - '0';
       ParseRequest(data.substring(data.indexOf(':')+1));
@@ -46,12 +47,18 @@ void TESP8266::ParseRequest(String data) {
         currentRequest.command_property = data[1];
         if (data.length() > 2){
           int spacePos = data.indexOf(' ');
-          if (spacePos == -1)
+          if (spacePos == -1){
             currentRequest.args[0] = data.substring(2).toInt();
+            currentRequest.argc = 1;
+          }
           else{
             currentRequest.args[0] = data.substring(2, spacePos).toInt();
             currentRequest.args[1] = data.substring(spacePos + 1).toInt();
+            currentRequest.argc = 2;
           }
+        }
+        else {
+          currentRequest.argc = 0;
         }
         break;
     }

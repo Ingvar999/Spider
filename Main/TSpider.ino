@@ -16,18 +16,22 @@ void TSpider::Wander() {
   BasicPosition();
 }
 
-void ControlServices() {
+void TSpider::ControlServices() {
+  CheckLight();
+  CheckVcc();
+  UpdateOnSurface();
+  if (onSurface) {
+    if (!(PositionAlignment() || WorkloadsAlignment() || HeightControl()))
+      UpdateAllAngles();
+  }
+  if (esp.ReadRequest()) {
+    esp.SendResponse(HandleCurrentRequest());
+  }
+}
+
+void TimerHandler(){
   sei();
-  Spider.CheckLight();
-  Spider.CheckVcc();
-  Spider.UpdateOnSurface();
-  if (Spider.onSurface) {
-    if (!(Spider.PositionAlignment() || Spider.WorkloadsAlignment() || Spider.HeightControl()))
-      Spider.UpdateAllAngles();
-  }
-  if (Spider.esp.ReadRequest()) {
-    Spider.esp.SendResponse(Spider.HandleCurrentRequest());
-  }
+  Spider.ControlServices();
 }
 
 inline void TSpider::PowerOn() {
@@ -53,7 +57,7 @@ void TSpider::Init() {
 
 void TSpider::StartTimer(unsigned long miliseconds) {
   Timer3.initialize(miliseconds * 1000);
-  Timer3.attachInterrupt(ControlServices);
+  Timer3.attachInterrupt(TimerHandler);
   Timer3.start();
 }
 
@@ -350,7 +354,7 @@ void TSpider::CheckVcc()
 {
   if (checkVccActive)
     if (powerOn) {
-      if (board.GetVcc() < 5300) {
+      if (board.GetVcc() < 6000) {
         PowerOff();
       }
       else
@@ -439,7 +443,7 @@ int TSpider::WorkloadsAlignment() {
       amount += legs[i].workload;
     int avarageWorkload = amount / 6;
     for (int i = 0; i < 6; ++i) {
-      error |= legs[i].ChangeHeight((int)((float)(avarageWorkload - legs[i].workload) / maxWorkloadDisparityRate / avarageWorkload));
+      error |= legs[i].ChangeHeight((int)((float)(avarageWorkload - legs[i].workload) * 2 / maxWorkloadDisparityRate / avarageWorkload));
     }
     if (error)
       SetErrno(LEG_CANNOT_REACH_POINT);
@@ -451,13 +455,18 @@ int TSpider::WorkloadsAlignment() {
 String TSpider::HandleCurrentRequest() {
   switch (esp.currentRequest.requestType) {
     case esp.DO:
-      TTask task;
-      task.command = esp.currentRequest.command_property;
-      task.args[0] = esp.currentRequest.args[0];
-      task.args[1] = esp.currentRequest.args[1];
-      tasksQueue.Push(task);
-      ResetErrno();
-      return "Recieved";
+      if (!tasksQueue.isFull()){
+        TTask task;
+        task.command = esp.currentRequest.command_property;
+        task.args[0] = esp.currentRequest.args[0];
+        task.args[1] = esp.currentRequest.args[1];
+        task.argc = esp.currentRequest.argc;
+        tasksQueue.Push(task);
+        ResetErrno();
+        return "Recieved";
+      }
+      else 
+        return "Queue is full";
       break;
     case esp.INFO:
       return GetInfo();
@@ -647,5 +656,5 @@ void TSpider::UpdateOnSurface() {
   int amount = 0;
   for (int i = 0; i < 6; ++i)
     amount = legs[i].workload;
-  onSurface = (amount % 6) > minWorkloadThreshold;
+  onSurface = amount > minWorkloadOnSurface;
 }

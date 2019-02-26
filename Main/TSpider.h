@@ -49,6 +49,7 @@ class TSpider
     String GetErrorMessage();
     String HandleCurrentRequest();
     void UpdateOnSurface();
+    void ControlServices();
   private:
     static const int powerPin = 40;
     static const int ledPin = 52;
