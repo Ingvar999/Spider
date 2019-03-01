@@ -75,5 +75,5 @@ void TESP8266::SendData(byte id, String data) {
   espSerial->println("AT+CIPSEND=" + String(id) + "," + String(data.length()));
   espSerial->find(">");
   espSerial->print(data);
-  espSerial->find("OK");
+  //espSerial->find("OK");
 }

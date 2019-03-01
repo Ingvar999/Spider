@@ -22,9 +22,4 @@ int sign(int32_t value){
 #define L1 70
 #define L2 70
 
-#define OK 0
-#define SUBBOARD 1
-#define LOW_BATTARY 2
-#define POWER_OFF 3
-#define TOO_SMALL_HEIGHT 4
-#define LEG_CANNOT_REACH_POINT 5
+enum TErrno{ OK, SUBBOARD, LOW_BATTARY, POWER_OFF, HIGH_WORKLOAD, TOO_SMALL_HEIGHT, LEG_CANNOT_REACH_POINT};

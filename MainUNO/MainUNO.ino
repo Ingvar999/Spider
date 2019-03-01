@@ -56,7 +56,6 @@ void UpdateAllAngles()
 void Interrupt(){
   sei();
   gyro.UpdateGyro();
-  //currentVcc = ReadVcc();
 }
 
 void setup() {
@@ -64,7 +63,7 @@ void setup() {
   
   gyro.CalibrationGyro();
   
-  MsTimer2::set(120, Interrupt);
+  MsTimer2::set(110, Interrupt);
   MsTimer2::start();
 
   for (int i = 0; i < 6; ++i){

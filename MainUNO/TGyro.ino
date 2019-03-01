@@ -122,9 +122,8 @@ void TGyro::CalibrationGyro()
 
 void TGyro::UpdateGyro()
 {
-  int error;
   accel_t_gyro_union accel_t_gyro;
-  error = read_gyro_accel_vals((uint8_t*)&accel_t_gyro);
+  read_gyro_accel_vals((uint8_t*)&accel_t_gyro);
   unsigned long t_now = millis();
 
   float gyro_x = (accel_t_gyro.value.x_gyro - base_x_gyro) / FS_SEL;

@@ -16,14 +16,14 @@ class SimpleQueue
       count = rPos = wPos = 0;
     }
     
-    T Pop() {
+    const T& Pop() {
       T item = buffer[rPos];
       rPos = inc(rPos);
       count--;
       return item;
     }
     
-    void Push(T item) {
+    void Push(const T& item) {
       buffer[wPos] = item;
       wPos = inc(wPos);
       count++;

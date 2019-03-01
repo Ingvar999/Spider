@@ -1,6 +1,8 @@
 #pragma once
 
 #include <NewPing.h>
+
+#include "Constants.h"
 #include "TLeg.h"
 #include "TESP8266.h"
 #include "TSubBoard.h"
@@ -40,7 +42,7 @@ class TSpider
     void Move(int direction);
     void CheckVcc();
     void CheckLight();
-    void UpdateWorkloads();
+    int UpdateWorkloads();
     void ReachGround();
     int WorkloadsAlignment();
     int HeightControl();
@@ -48,7 +50,7 @@ class TSpider
     void DoCommands();
     String GetErrorMessage();
     String HandleCurrentRequest();
-    void UpdateOnSurface();
+    void Update_OnSurface_Worklods_Position();
     void ControlServices();
   private:
     static const int powerPin = 40;
@@ -64,16 +66,21 @@ class TSpider
     static const int stepDelaying = 300;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
+    static const int maxWorkloadThreshold = 400;
     static const float maxWorkloadDisparityRate = 0.35;
     static const int majorDirection = 150;
     static const int minDistance = 30;
-    static const int minWorkloadOnSurface = 100;
-
+    static const int minWorkloadOnSurface = 150;
+    static const int minVoltage = 7000;
+   
     TLeg legs[6];
     SimpleQueue<TTask> tasksQueue;
     byte Radius = minRadius, height = 0;
-    int positionH = 0, positionV = 0, errno = 0;
+    int positionH = 0, positionV = 0;
     byte motionDelaying = 5;
+    TErrno errno = OK;
+    
+    bool isLightning = false;
 
     int MaxHeight();
     int MinHeight();
@@ -83,8 +90,8 @@ class TSpider
     String GetInfo();
     String SetProperty();
     bool isValidDistance(){int dist = sonar->ping_cm(); return (dist == 0 || dist > minDistance);}
-    void SetErrno(int error);
-    void ResetErrno();
+    void SetErrno(TErrno error);
+    void TurnLight(int state);
 };
 
 TSpider Spider;
