@@ -9,7 +9,11 @@ inline String BoolToString(bool b){return (b ? "1" : "0");}
 
 inline int inc(int i, int d)
 {
-  return (i + d) % 6;
+  i += d;
+  if (i >= 6){
+    i -= 6;
+  }
+  return i;
 }
 
 int sign(int32_t value){

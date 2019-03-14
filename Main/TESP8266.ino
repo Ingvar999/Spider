@@ -37,7 +37,7 @@ bool TESP8266::ReadRequest() {
 }
 
 void TESP8266::ParseRequest(String data) {
-  if (data.length() >= 2 && (data[0] == INFO || data[0] == DO || data[0] == SET)) {
+  if (data.length() >= 2) {
     currentRequest.requestType = data[0];
     switch (currentRequest.requestType) {
       case INFO:
@@ -60,6 +60,9 @@ void TESP8266::ParseRequest(String data) {
         else {
           currentRequest.argc = 0;
         }
+        break;
+        default:
+          currentRequest.requestType = ERR;
         break;
     }
   }

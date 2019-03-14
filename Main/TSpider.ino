@@ -7,7 +7,7 @@ void TSpider::Wander() {
   if (errno == OK) {
     ChangeHeight(40);
     while (errno == OK) {
-      Move(majorDirection);
+      Move(0);
       while ( errno == 0 && !isValidDistance()) {
         FixedTurn(60);
       }
@@ -459,23 +459,24 @@ int TSpider::WorkloadsAlignment() {
 
 String TSpider::HandleCurrentRequest() {
   switch (esp.currentRequest.requestType) {
-    case esp.DO:
-      if (errno != POWER_OFF && errno != LOW_BATTARY) {
-        if (!tasksQueue.isFull()) {
-          TTask task;
-          task.command = esp.currentRequest.command_property;
-          task.args[0] = esp.currentRequest.args[0];
-          task.args[1] = esp.currentRequest.args[1];
-          task.argc = esp.currentRequest.argc;
-          tasksQueue.Push(task);
-          errno = OK;
-          return "Recieved";
+    case esp.DO: {
+        if (errno != POWER_OFF && errno != LOW_BATTARY) {
+          if (!tasksQueue.isFull()) {
+            TTask task;
+            task.command = esp.currentRequest.command_property;
+            task.args[0] = esp.currentRequest.args[0];
+            task.args[1] = esp.currentRequest.args[1];
+            task.argc = esp.currentRequest.argc;
+            tasksQueue.Push(task);
+            errno = OK;
+            return "Recieved";
+          }
+          else
+            return "Queue is full";
         }
-        else
-          return "Queue is full";
-      }
-      else {
-        return GetErrorMessage();
+        else {
+          return GetErrorMessage();
+        }
       }
       break;
     case esp.INFO:
@@ -494,60 +495,70 @@ void TSpider::DoCommands() {
   if (!tasksQueue.isEmpty()) {
     const TTask& task = tasksQueue.Pop();
     switch (task.argc) {
-      case 0:
-        switch (task.command)
-        {
-          case 'b':
-            BasicPosition();
-            break;
-          case 'm':
-            Move(majorDirection);
-            break;
-        }
-        break;
-      case 1:
-        switch (task.command)
-        {
-          case 'r':
-            SetRadius(task.args[0]);
-            break;
-          case 'h':
-            ChangeHeight(task.args[0]);
-            break;
-          case 'f':
-            FixedTurn(task.args[0]);
-            break;
-          case 't':
-            Turn(task.args[0]);
-            break;
-          case 'm':
-            Move(task.args[0]);
-            break;
-        }
-        break;
-      case 2:
-        switch (task.command)
-        {
-          case '|': {
-              int error = legs[task.args[0]].ChangeHeight(task.args[1]);
-              if (!error)
-                UpdateAllAngles();
-            }
-            break;
-          case '-': {
-              int newR = (legs[task.args[0]].R + task.args[1]);
-              if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(legs[task.args[0]].GetHeight()) + sqr(newR))) {
-                legs[task.args[0]].R = newR;
-                UpdateAllAngles();
+      case 0: {
+          switch (task.command)
+          {
+            case 'b': {
+                BasicPosition();
               }
-            }
-            break;
-          case ')': {
-              byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
-              values[task.args[0]] = task.args[1];
-              board.TurnLegs(values);
-            }
-            break;
+              break;
+            case 'm': {
+                Move(0);
+              }
+              break;
+          }
+        }
+        break;
+      case 1: {
+          switch (task.command)
+          {
+            case 'r': {
+                SetRadius(task.args[0]);
+              }
+              break;
+            case 'h': {
+                ChangeHeight(task.args[0]);
+              }
+              break;
+            case 'f': {
+                FixedTurn(task.args[0]);
+              }
+              break;
+            case 't': {
+                Turn(task.args[0]);
+              }
+              break;
+            case 'm': {
+                Move(task.args[0]);
+              }
+              break;
+          }
+        }
+        break;
+      case 2: {
+          switch (task.command)
+          {
+            case '|': {
+                int error = legs[task.args[0]].ChangeHeight(task.args[1]);
+                if (!error)
+                  UpdateAllAngles();
+              }
+              break;
+            case '-': {
+                int newR = (legs[task.args[0]].R + task.args[1]);
+                if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(legs[task.args[0]].GetHeight()) + sqr(newR))) {
+                  legs[task.args[0]].R = newR;
+                  UpdateAllAngles();
+                }
+              }
+              break;
+            case ')': {
+                byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
+                values[task.args[0]] = task.args[1];
+                board.TurnLegs(values);
+              }
+              break;
+          }
         }
         break;
     }
@@ -601,46 +612,55 @@ String TSpider::GetInfo() {
 String TSpider::SetProperty() {
   switch (esp.currentRequest.command_property)
   {
-    case 'i':
-      bool toOn = (bool)esp.currentRequest.args[0];
-      if (toOn) {
-        PowerOn();
-        if (errno == POWER_OFF) {
-          errno = OK;
+    case 'i': {
+        bool toOn = (bool)esp.currentRequest.args[0];
+        if (toOn) {
+          PowerOn();
+          if (errno == POWER_OFF || errno == LOW_BATTARY) {
+            errno = OK;
+          }
+        }
+        else {
+          SetErrno(POWER_OFF);
+          PowerOff();
         }
       }
-      else {
-        SetErrno(POWER_OFF);
-        PowerOff();
+      break;
+    case 'w': {
+        workloadsAlignemtActive = esp.currentRequest.args[0];
       }
       break;
-    case 'w':
-      workloadsAlignemtActive = esp.currentRequest.args[0];
-      break;
-    case 'b':
-      balanceActive = esp.currentRequest.args[0];
-      break;
-    case 'h':
-      heightControlActive = esp.currentRequest.args[0];
-      break;
-    case 'c':
-      checkVccActive = esp.currentRequest.args[0];
-      if (!checkVccActive && errno == LOW_BATTARY) {
-        errno = OK;
+    case 'b': {
+        balanceActive = esp.currentRequest.args[0];
       }
       break;
-    case 'l':
-      lightControlActive = esp.currentRequest.args[0];
+    case 'h': {
+        heightControlActive = esp.currentRequest.args[0];
+      }
       break;
-    case 's':
-      motionDelaying = 50 - esp.currentRequest.args[0];
+    case 'c': {
+        checkVccActive = esp.currentRequest.args[0];
+        if (!checkVccActive && errno == LOW_BATTARY) {
+          errno = POWER_OFF;
+        }
+      }
       break;
-    case 'p':
-      positionV = esp.currentRequest.args[0];
-      positionH = esp.currentRequest.args[1];
+    case 'l': {
+        lightControlActive = esp.currentRequest.args[0];
+      }
       break;
-    default:
-      return "Invalid property";
+    case 's': {
+        motionDelaying = 50 - esp.currentRequest.args[0];
+      }
+      break;
+    case 'p': {
+        positionV = esp.currentRequest.args[0];
+        positionH = esp.currentRequest.args[1];
+      }
+      break;
+    default: {
+        return "Invalid property";
+      }
       break;
   }
   return "Recieved";
@@ -687,10 +707,13 @@ void TSpider::SetErrno(TErrno error) {
 
 void TSpider::Update_OnSurface_Worklods_Position() {
   if (!UpdateWorkloads()) {
-    unsigned int amount = 0;
-    for (int i = 0; i < 6; ++i)
-      amount += legs[i].workload;
-    onSurface = amount > minWorkloadOnSurface;
+    int legsOnSurface = 0;
+    for (int i = 0; i < 6; ++i){
+      if (legs[i].workload > minWorkloadThreshold){
+        ++legsOnSurface;
+      }
+    }
+    onSurface = legsOnSurface >= 3;
     board.UpdatePosition();
   }
 }

@@ -17,26 +17,29 @@ class SimpleQueue
     }
     
     const T& Pop() {
-      T item = buffer[rPos];
-      rPos = inc(rPos);
+      int itemPos = rPos;
+      inc(rPos);
       count--;
-      return item;
+      return buffer[itemPos];
     }
     
     void Push(const T& item) {
       buffer[wPos] = item;
-      wPos = inc(wPos);
+      inc(wPos);
       count++;
     }
 
   private:
     static const int maxSize = 5;
 
-    int count = 0;
+    volatile int count = 0;
     int rPos, wPos;
     T buffer[maxSize];
 
-    int inc(int x) {
-      return (++x) % maxSize;
+    inc(int &x) {
+      ++x;
+      if (x == maxSize){
+        x = 0;
+      }
     }
 };

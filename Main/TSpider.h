@@ -66,12 +66,12 @@ class TSpider
     static const int stepDelaying = 300;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
-    static const int maxWorkloadThreshold = 400;
+    static const int maxWorkloadThreshold = 500;
     static const float maxWorkloadDisparityRate = 0.35;
-    static const int majorDirection = 150;
+    //static const int majorDirection = 150;
     static const int minDistance = 30;
-    static const int minWorkloadOnSurface = 150;
-    static const int minVoltage = 7000;
+    //static const int minWorkloadOnSurface = 150;
+    static const int minVoltage = 6000;
    
     TLeg legs[6];
     SimpleQueue<TTask> tasksQueue;
