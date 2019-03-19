@@ -16,7 +16,9 @@ Identifier of command | Parameters | Range | Example
 'f' - Perform turn with step | 1. Angle of turn in degrees| 1. -180 .. 180 | "df30\n" - turn the body 30 degrees clockwise
 't' - Perform temporary turn without step | 1. Angle of turn in degrees | 1. -20 .. 20 | "dt10\n"
 'b' - Takes the basic position | None | - | "db\n"
-'m' - Move in a particular direction or default | 1. Direction of moving in degrees or None | 1. -180 .. 180 | "dm100\n"
+'m' - Move in a particular direction | 1. Direction of moving in degrees | 1. -180 .. 180 | "dm100\n"
+'m' - Move forward with avoiding obstacles | None | - | "dm\n"
+'s' - Stop while moving or turning | None | - | "ds\n"
 
 ### Set-property requests
 Identifier of property | Parameters | Range | Example
@@ -27,7 +29,9 @@ Identifier of property | Parameters | Range | Example
 'h' - Turn height control on/off| New bool value| 1. 0 .. 1| "sh0\n"
 'c' - Turn voltage control on/off| New bool value| 1. 0 .. 1| "sc0\n"
 'l' - Turn light control on/off| New bool value| 1. 0 .. 1| "sl0\n"
+'f' - Turn light on/off. The light control will be automatically turned off | New bool value | 1. 0 .. 1 | "sf1\n"
 's' - Set speed of moving| New speed| 1. 0 .. 50| "ss45\n"
+'d' - Set critical distance for avoiding while moving | New distance (cm) | 1. 20 .. 150 | "sd30\n"
 'p' - Set required position for balancing| 1. Vertical deviation 2. Direction| 1. 0 .. 20 2. -180 .. 180| "sp5 90\n"
 
 ### Information requests
