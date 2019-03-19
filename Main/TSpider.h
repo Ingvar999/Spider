@@ -14,15 +14,6 @@ class TSpider
   public:
     TESP8266 esp;
     TSubBoard board;
-    NewPing *sonar;
-
-    bool balanceActive = true;
-    bool workloadsAlignemtActive = true;
-    bool heightControlActive = true;
-    bool checkVccActive = true;
-    bool lightControlActive = true;
-    bool powerOn = true;
-    bool onSurface = false;
 
     inline void PowerOn();
     inline void PowerOff();
@@ -30,28 +21,8 @@ class TSpider
     void InitLeg(int, int, int, int, int, int = 0, int = 0, int = 10);
     void StartTimer(unsigned long);
     void UpdateAllAngles();
-    void ChangeHeight(int, bool = true);
-    int GetRadius() {
-      return Radius;
-    };
-    void SetRadius(int newR);
-    void Turn(int angle);
-    void FixedTurn(int angle);
-    int PositionAlignment();
-    void BasicPosition();
-    void Move(int direction);
-    void CheckVcc();
-    void CheckLight();
-    int UpdateWorkloads();
-    void ReachGround();
-    int WorkloadsAlignment();
-    int HeightControl();
-    void Wander();
-    void DoCommands();
-    String GetErrorMessage();
-    String HandleCurrentRequest();
-    void Update_OnSurface_Worklods_Position();
     void ControlServices();
+    void DispatchTasksQueue();
   private:
     static const int powerPin = 40;
     static const int ledPin = 52;
@@ -63,23 +34,28 @@ class TSpider
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
-    static const int stepDelaying = 300;
+    static const int stepDelaying = 400;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
-    static const int maxWorkloadThreshold = 500;
+    static const int maxWorkloadThreshold = 600;
     static const float maxWorkloadDisparityRate = 0.35;
-    //static const int majorDirection = 150;
-    static const int minDistance = 30;
-    //static const int minWorkloadOnSurface = 150;
     static const int minVoltage = 6000;
    
     TLeg legs[6];
+    NewPing *sonar;
     SimpleQueue<TTask> tasksQueue;
     byte Radius = minRadius, height = 0;
     int positionH = 0, positionV = 0;
-    byte motionDelaying = 5;
+    byte motionDelaying = 7;
     TErrno errno = OK;
-    
+    int minDistance = 30;
+    bool balanceActive = true;
+    bool workloadsAlignemtActive = true;
+    bool heightControlActive = true;
+    bool checkVccActive = false;
+    bool lightControlActive = true;
+    bool powerOn = true;
+    bool onSurface = false;
     bool isLightning = false;
 
     int MaxHeight();
@@ -92,6 +68,25 @@ class TSpider
     bool isValidDistance(){int dist = sonar->ping_cm(); return (dist == 0 || dist > minDistance);}
     void SetErrno(TErrno error);
     void TurnLight(int state);
+    void ChangeHeight(int, bool = true);
+    int GetRadius() {
+      return Radius;
+    };
+    void SetRadius(int newR);
+    void Turn(int angle);
+    void FixedTurn(int angle);
+    int PositionAlignment();
+    void BasicPosition();
+    void Move(int direction, bool wander);
+    void CheckVcc();
+    void CheckLight();
+    int UpdateWorkloads();
+    void ReachGround();
+    int WorkloadsAlignment();
+    int HeightControl();
+    String GetErrorMessage();
+    String HandleCurrentRequest();
+    void Update_OnSurface_Worklods_Position();
 };
 
 TSpider Spider;

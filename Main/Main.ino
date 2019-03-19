@@ -14,10 +14,11 @@ void setup()
   Spider.esp.Init(&Serial1);
   Spider.board.Init(&Serial2);
   Spider.UpdateAllAngles();
+  Spider.PowerOn();
   Spider.StartTimer(450);
 }
 
 void loop()
 {
-  Spider.DoCommands();
+  Spider.DispatchTasksQueue();
 }

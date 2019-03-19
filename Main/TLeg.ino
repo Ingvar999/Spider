@@ -10,8 +10,8 @@ void TLeg::Init(int _posOnBody, int _measurePin, int pin1, int pin2, int pog1, i
   p2 = pog2;
   servo1.attach(pin1);
   servo2.attach(pin2);
-  angle1 = servo1.read();
-  angle2 = servo2.read();
+  //angle1 = servo1.read();
+  //angle2 = servo2.read();
 }
 
 int TLeg::ChangeHeight(int delta)
@@ -71,5 +71,3 @@ int TLeg::CalculateForStep(int d, int direction, int Radius)
 inline int TLeg::ReadVoltage(){
   return analogRead(measurePin);
 }
-
-
