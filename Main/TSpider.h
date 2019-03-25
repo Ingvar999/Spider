@@ -8,13 +8,14 @@
 #include "TSubBoard.h"
 #include "SimpleQueue.h"
 #include "TTask.h"
+#include "BasicDebugger.h"
+#include "TrueDebugger.h"
+
+#define DEBUG
 
 class TSpider
 {
   public:
-    TESP8266 esp;
-    TSubBoard board;
-
     inline void PowerOn();
     inline void PowerOff();
     void Init();
@@ -37,11 +38,14 @@ class TSpider
     static const int stepDelaying = 400;
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
-    static const int maxWorkloadThreshold = 600;
+    static const int maxWorkloadThreshold = 700;
     static const float maxWorkloadDisparityRate = 0.35;
     static const int minVoltage = 6000;
-   
+
+    TESP8266 esp;
+    TSubBoard board;
     TLeg legs[6];
+    BasicDebugger *debugger;
     NewPing *sonar;
     SimpleQueue<TTask> tasksQueue;
     byte Radius = minRadius, height = 0;

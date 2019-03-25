@@ -10,8 +10,6 @@ void TLeg::Init(int _posOnBody, int _measurePin, int pin1, int pin2, int pog1, i
   p2 = pog2;
   servo1.attach(pin1);
   servo2.attach(pin2);
-  //angle1 = servo1.read();
-  //angle2 = servo2.read();
 }
 
 int TLeg::ChangeHeight(int delta)
@@ -28,6 +26,7 @@ int TLeg::ChangeHeight(int delta)
 
 int TLeg::WriteAngles(int alpha1, int alpha2)
 {
+  int probe;
   if (alpha1 != angle1 || alpha2 != angle2)
   {
     if (alpha1 != angle1)
@@ -36,7 +35,12 @@ int TLeg::WriteAngles(int alpha1, int alpha2)
         ++angle1;
       else
         --angle1;
-      servo1.write(angle1 + p1);
+      probe = angle1 + p1;
+      if (probe < 180 && probe > 0){
+        servo1.write(probe);
+      }
+      else
+        return 1;
     }
     if (alpha2 != angle2)
     {
@@ -44,7 +48,12 @@ int TLeg::WriteAngles(int alpha1, int alpha2)
         ++angle2;
       else
         --angle2;
-      servo2.write(angle2 + p2);
+      probe = angle2 + p2;
+      if (probe < 180 && probe > 0){
+        servo2.write(probe);
+      }
+      else
+        return 1;
     }
     return 0;
   }

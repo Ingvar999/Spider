@@ -23,7 +23,8 @@ class TLeg
 
   private:
     Servo servo1, servo2;
-    byte angle1, angle2, h = 0, measurePin, qR;
+    int angle1, angle2;
+    byte h = 0, measurePin, qR;
     short  p1, p2;
     int posOnBody;
 };

@@ -36,7 +36,7 @@ bool TESP8266::ReadRequest() {
     return false;
 }
 
-void TESP8266::ParseRequest(String data) {
+void TESP8266::ParseRequest(const String &data) {
   if (data.length() >= 2) {
     currentRequest.requestType = data[0];
     switch (currentRequest.requestType) {
@@ -70,13 +70,13 @@ void TESP8266::ParseRequest(String data) {
     currentRequest.requestType = ERR;
 }
 
-void TESP8266::SendResponse(String result){
+void TESP8266::SendResponse(const String &result){
   SendData(currentRequest.id, result);
 }
 
-void TESP8266::SendData(byte id, String data) {
+void TESP8266::SendData(const byte id, const String &data) {
   espSerial->println("AT+CIPSEND=" + String(id) + "," + String(data.length()));
   espSerial->find(">");
   espSerial->print(data);
-  //espSerial->find("OK");
+  //espSerial->find("OK"); 
 }

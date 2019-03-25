@@ -11,11 +11,9 @@ void setup()
   Spider.InitLeg(4, 90, 1, 2, 12, 0, 8);
   Spider.InitLeg(5, 150, 2, 5, 13, -4, -3, 7);
   
-  Spider.esp.Init(&Serial1);
-  Spider.board.Init(&Serial2);
   Spider.UpdateAllAngles();
   Spider.PowerOn();
-  Spider.StartTimer(450);
+  Spider.StartTimer(400);
 }
 
 void loop()

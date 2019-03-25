@@ -1,13 +1,6 @@
 #pragma once
 
-struct Request{
-  byte id;
-  char requestType;
-  String requiredValues;
-  char command_property;
-  int argc;
-  int args[2];
-};
+#include "Request.h"
 
 class TESP8266
 {
@@ -23,10 +16,10 @@ class TESP8266
     inline void Clear();
     void Init(HardwareSerial *);
     bool ReadRequest();
-    void SendResponse(String); 
+    void SendResponse(const String&);
+    void SendData(const byte id, const String &data); 
   private:
     HardwareSerial *espSerial;
 
-    void ParseRequest(String data);
-    void SendData(byte id, String data);
+    void ParseRequest(const String &data);
 };
