@@ -30,7 +30,7 @@ Identifier of property | Parameters | Range | Example
 'c' - Turn voltage control on/off| New bool value| 1. 0 .. 1| "sc0\n"
 'l' - Turn light control on/off| New bool value| 1. 0 .. 1| "sl0\n"
 'f' - Turn light on/off. The light control will be automatically turned off | New bool value | 1. 0 .. 1 | "sf1\n"
-'s' - Set speed of moving| New speed| 1. 0 .. 50| "ss45\n"
+'s' - Set speed of moving| New speed| 1. 0 .. 30| "ss45\n"
 'd' - Set critical distance for avoiding while moving | New distance (cm) | 1. 20 .. 150 | "sd30\n"
 'p' - Set required position for balancing| 1. Vertical deviation 2. Direction| 1. 0 .. 20 2. -180 .. 180| "sp5 90\n"
 
@@ -46,8 +46,10 @@ Identifier of value | Range | Example
 'p' - Position in the spherical coordinate system: deviation from the horizon and its direction | 1. 0 .. 50        2. -180 .. 180 | "3.25 150.1\n"
 'e' - Error message | - | "OK\n"
 'd' - Distance to the obstacle (sm) | 0 .. 150 | "40\n"
-'i' - Is power on or off | 0 .. 1 | "i1\n"
-'c' - States of controls (on or off): balancing, workloads alignment, height control, voltage control, light control | 0 .. 1 | "01110\n"
+'i' - States of controls (on or off): balancing, workloads alignment, height control, voltage control, light control, lightning, power | 0 .. 1 | "0111001\n"
+'s' - Speed of moving | 1. 0 .. 30| "23\n"
+'c' - Critical distance for avoiding while moving | 1. 20 .. 150 | "30\n"
+'q' - Required position for balancing: deviation from the horizon and its direction | 1. 0 .. 20  2. -180 .. 180 | "10 100\n"
 
 ### Errors handling
 There are two types of errors: mistakes in the recieved request and errors during operation of the robot.
