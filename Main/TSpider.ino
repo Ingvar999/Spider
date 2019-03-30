@@ -2,7 +2,8 @@
 #include "TSpider.h"
 #include "Constants.h"
 
-void TSpider::ControlServices() {
+template<typename T>
+void TSpider<T>::ControlServices() {
   CheckLight();
   CheckVcc();
   Update_OnSurface_Worklods_Position();
@@ -20,17 +21,20 @@ void TimerHandler() {
   Spider.ControlServices();
 }
 
-inline void TSpider::PowerOn() {
+template<typename T>
+inline void TSpider<T>::PowerOn() {
   digitalWrite(powerPin, HIGH);
   powerOn = true;
 }
 
-inline void TSpider::PowerOff() {
+template<typename T>
+inline void TSpider<T>::PowerOff() {
   digitalWrite(powerPin, LOW);
   powerOn = false;
 }
 
-void TSpider::Init() {
+template<typename T>
+void TSpider<T>::Init() {
   pinMode(powerPin, OUTPUT);
   digitalWrite(powerPin, LOW);
 
@@ -39,28 +43,27 @@ void TSpider::Init() {
   analogReference(INTERNAL1V1);
 
   sonar = new NewPing(trigPin, echoPin, 150);
-#ifdef DEBUG
-  debugger = new TrueDebugger(&esp);
-#else
-  debugger = new BasicDebugger(&esp);
-#endif
+  debugger = new T(&esp);
   Spider.esp.Init(&Serial1);
   Spider.board.Init(&Serial2);
 }
 
-void TSpider::StartTimer(unsigned long miliseconds) {
+template<typename T>
+void TSpider<T>::StartTimer(unsigned long miliseconds) {
   Timer3.initialize(miliseconds * 1000);
   Timer3.attachInterrupt(TimerHandler);
   Timer3.start();
 }
 
-void TSpider::InitLeg(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
+template<typename T>
+void TSpider<T>::InitLeg(int i, int _pos, int pinCont, int pin1, int pin2, int pog1 = 0, int pog2 = 0, int _qR = 10)
 {
   legs[i].Init(_pos, pinCont, pin1, pin2, pog1, pog2, _qR);
   legs[i].R = Radius;
 }
 
-void TSpider::UpdateAllAngles()
+template<typename T>
+void TSpider<T>::UpdateAllAngles()
 {
   int newAngles[12] = {0};
   int j = 0, i = 0;
@@ -85,10 +88,12 @@ void TSpider::UpdateAllAngles()
   } while (!done);
 }
 
+template<typename T>
 //второй параметр используется при контроле высоты
-void TSpider::ChangeHeight(int delta, bool changeProperty = true)
+void TSpider<T>::ChangeHeight(int delta, bool changeProperty = true)
 {
   int error = 0;
+  Timer3.stop();
   if (changeProperty && !onSurface) {
     ReachGround();
     if (errno == OK) {
@@ -96,20 +101,25 @@ void TSpider::ChangeHeight(int delta, bool changeProperty = true)
     }
   }
   if (errno == OK) {
-    for (int i = 0; i < 6; ++i)
-      error |= legs[i].ChangeHeight(delta);
+    int i;
+    for (i = 0; i < 6 && !error; ++i)
+      error = legs[i].ChangeHeight(delta);
     if (error) {
+      debugger->Debug(String(onSurface) + " " + String(changeProperty) + " " + String(height) + " " + String(delta) + " " + String(legs[i].GetHeight()));
       debugger->Debug("ChangeHeight sets errno");
       SetErrno(LEG_CANNOT_REACH_POINT);
     }
     else if (changeProperty) {
       height += delta;
       UpdateAllAngles();
+      delay(stepDelaying);
     }
   }
+  Timer3.start();
 }
 
-void TSpider::BasicPosition()
+template<typename T>
+void TSpider<T>::BasicPosition()
 {
   Timer3.stop();
   for (int i = 0; i < 6; i++)
@@ -127,7 +137,8 @@ void TSpider::BasicPosition()
   Timer3.start();
 }
 
-int TSpider::MaxHeight()
+template<typename T>
+int TSpider<T>::MaxHeight()
 {
   int res = legs[0].GetHeight();
   for (int i = 1; i < 6; ++i)
@@ -136,7 +147,8 @@ int TSpider::MaxHeight()
   return res;
 }
 
-int TSpider::MinHeight()
+template<typename T>
+int TSpider<T>::MinHeight()
 {
   int res = legs[0].GetHeight();
   for (int i = 1; i < 6; ++i)
@@ -145,9 +157,10 @@ int TSpider::MinHeight()
   return res;
 }
 
-void TSpider::SetRadius(int newR)
+template<typename T>
+void TSpider<T>::SetRadius(int newR)
 {
-  if ((newR >= minRadius) && (sqr(L1 + L2) > sqr(MaxHeight()) + sqr(newR)))
+  if ((newR >= minRadius) && (sqrL1L2 > sqr(MaxHeight()) + sqr(newR)))
   {
     if (!onSurface)
     {
@@ -161,8 +174,8 @@ void TSpider::SetRadius(int newR)
     }
     else {
       if (height >= minLifting) {
-        Radius = newR;
         Timer3.stop();
+        Radius = newR;
         for (int i = 0; i < 2 && errno == OK; i++)
         {
           ThreeLegsUpDown( i, i + 2, i + 4, -1);
@@ -188,7 +201,8 @@ void TSpider::SetRadius(int newR)
   }
 }
 
-void TSpider::Turn(int angle)
+template<typename T>
+void TSpider<T>::Turn(int angle)
 {
   angle = (angle <= maxTurn ? angle : maxTurn);
   int angle3, x, newR;
@@ -223,7 +237,8 @@ void TSpider::Turn(int angle)
   }
 }
 
-void TSpider::FixedTurn(int angle)
+template<typename T>
+void TSpider<T>::FixedTurn(int angle)
 {
   if (!(height < minLifting)) {
     int angle3, x, newR;
@@ -268,6 +283,7 @@ void TSpider::FixedTurn(int angle)
         delay(stepDelaying);
         ControlServices();
       }
+      delay(stepDelaying);
       Timer3.start();
     }
     else {
@@ -281,7 +297,8 @@ void TSpider::FixedTurn(int angle)
   }
 }
 
-void TSpider::Move(int direction, bool wander)
+template<typename T>
+void TSpider<T>::Move(int direction, bool wander)
 {
   if (height >= minLifting) {
     byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
@@ -341,6 +358,7 @@ void TSpider::Move(int direction, bool wander)
         }
       }
     }
+    delay(stepDelaying);
     Timer3.start();
   }
   else {
@@ -349,20 +367,23 @@ void TSpider::Move(int direction, bool wander)
   }
 }
 
-inline void TSpider::TwoLegsUpDown(int i, int j, int dir)
+template<typename T>
+inline void TSpider<T>::TwoLegsUpDown(int i, int j, int dir)
 {
   legs[i].ChangeHeight(dir * height);
   legs[j].ChangeHeight(dir * height);
   UpdateAllAngles();
 }
 
-inline void TSpider::ThreeLegsUpDown(int i, int j, int k, int dir)
+template<typename T>
+inline void TSpider<T>::ThreeLegsUpDown(int i, int j, int k, int dir)
 {
   legs[i].ChangeHeight(dir * height);
   TwoLegsUpDown(j, k, dir);
 }
 
-void TSpider::CheckVcc()
+template<typename T>
+void TSpider<T>::CheckVcc()
 {
   if (checkVccActive)
     if (powerOn) {
@@ -374,25 +395,34 @@ void TSpider::CheckVcc()
     }
 }
 
-int TSpider::Balance()
+template<typename T>
+int TSpider<T>::Balance()
 {
-  int dh = 0, error = 0;
+  int dh = 0, error = 0, i;
   float tanV = tan(board.position.vertical * ToRad), tanPV = tan(positionV * ToRad);
-  for (int i = 0; i < 6; ++i)
+  for (i = 0; i < 6 && !error; ++i)
   {
     dh = round((Radius + a) * (cos((legs[i].GetPosition() - board.position.horizontal) * ToRad) * tanV -
                                cos((legs[i].GetPosition() - positionH) * ToRad) * tanPV));
-    error |= legs[i].ChangeHeight(dh);
+    error = legs[i].ChangeHeight(dh);
   }
+  
+  String deb = "Balance " + String(legs[0].GetHeight());
+  for (int i = 1; i < 6; ++i) {
+    deb += " " + String(legs[i].GetHeight());
+  }
+  debugger->Debug(deb);
+  debugger->Debug(String(board.position.vertical) + " " + String(board.position.horizontal));
   if (error) {
     debugger->Debug("Balance sets errno");
+    debugger->Debug(String(onSurface) + " " + String(height) + " " + String(dh) + " " + String(board.position.vertical) + " " + String(legs[i].GetHeight()));
     SetErrno(LEG_CANNOT_REACH_POINT);
   }
   return error;
 }
 
-
-int TSpider::PositionAlignment()
+template<typename T>
+int TSpider<T>::PositionAlignment()
 {
   int error = 0;
   if (balanceActive) {
@@ -404,7 +434,8 @@ int TSpider::PositionAlignment()
   return error;
 }
 
-int TSpider::UpdateWorkloads() {
+template<typename T>
+int TSpider<T>::UpdateWorkloads() {
   unsigned long amount[6] = {0};
   for (int i = 0; i < 30; ++i)
     for (int j = 0; j < 6; ++j)
@@ -421,17 +452,18 @@ int TSpider::UpdateWorkloads() {
   return 0;
 }
 
-void TSpider::ReachGround() {
+template<typename T>
+void TSpider<T>::ReachGround() {
   int error = 0;
   bool done;
   do {
     UpdateWorkloads();
     if (errno == OK) {
       done = true;
-      for (int i = 0; i < 6; ++i) {
+      for (int i = 0; i < 6 && !error; ++i) {
         if (legs[i].workload < minWorkloadThreshold) {
           done = false;
-          error |= legs[i].ChangeHeight(4);
+          error = legs[i].ChangeHeight(4);
         }
       }
       if (!done) {
@@ -447,27 +479,39 @@ void TSpider::ReachGround() {
   return error;
 }
 
-int TSpider::HeightControl() {
+template<typename T>
+int TSpider<T>::HeightControl() {
   if (heightControlActive) {
     int realHeight = MinHeight();
     if (height != realHeight) {
       ChangeHeight(height - realHeight, false);
+      String deb = "HControl " + String(legs[0].GetHeight());
+      for (int i = 1; i < 6; ++i) {
+        deb += " " + String(legs[i].GetHeight());
+      }
+      debugger->Debug(deb);
       return errno;
     }
   }
   return 0;
 }
 
-int TSpider::WorkloadsAlignment() {
+template<typename T>
+int TSpider<T>::WorkloadsAlignment() {
   if (workloadsAlignemtActive) {
     unsigned int amount = 0;
     int error = 0;
     for (int i = 0; i < 6; ++i)
       amount += legs[i].workload;
     int avarageWorkload = amount / 6;
-    for (int i = 0; i < 6; ++i) {
-      error |= legs[i].ChangeHeight((int)((float)(avarageWorkload - legs[i].workload) / (maxWorkloadDisparityRate * avarageWorkload)));
+    for (int i = 0; i < 6 && !error; ++i) {
+      error = legs[i].ChangeHeight((int)((float)(avarageWorkload - legs[i].workload) / (maxWorkloadDisparityRate * avarageWorkload)));
     }
+    String deb = "Alignment " + String(legs[0].GetHeight());
+    for (int i = 1; i < 6; ++i) {
+      deb += " " + String(legs[i].GetHeight());
+    }
+    debugger->Debug(deb);
     if (error) {
       debugger->Debug("WorkloadsAlignment sets errno");
       SetErrno(LEG_CANNOT_REACH_POINT);
@@ -477,9 +521,10 @@ int TSpider::WorkloadsAlignment() {
   return 0;
 }
 
-String TSpider::HandleCurrentRequest() {
+template<typename T>
+String TSpider<T>::HandleCurrentRequest() {
   switch (esp.currentRequest.requestType) {
-    case esp.DO: {
+    case TESP8266::DO: {
         if (errno != POWER_OFF && errno != LOW_BATTARY) {
           if (!tasksQueue.isFull()) {
             TTask task(esp.currentRequest);
@@ -495,19 +540,20 @@ String TSpider::HandleCurrentRequest() {
         }
       }
       break;
-    case esp.INFO:
+    case TESP8266::INFO:
       return GetInfo();
       break;
-    case esp.SET:
+    case TESP8266::SET:
       return SetProperty();
       break;
-    case esp.ERR:
+    case TESP8266::ERR:
       return "Invalid request type";
       break;
   }
 }
 
-void TSpider::DispatchTasksQueue() {
+template<typename T>
+void TSpider<T>::DispatchTasksQueue() {
   if (!tasksQueue.isEmpty()) {
     const TTask task = tasksQueue.Pop();
     switch (task.argc) {
@@ -594,7 +640,8 @@ void TSpider::DispatchTasksQueue() {
   }
 }
 
-String TSpider::GetInfo() {
+template<typename T>
+String TSpider<T>::GetInfo() {
   String result;
   for (int i = 0; i < esp.currentRequest.requiredValues.length(); ++i) {
     switch (esp.currentRequest.requiredValues[i]) {
@@ -622,11 +669,18 @@ String TSpider::GetInfo() {
         result += String(sonar->ping_cm());
         break;
       case 'i':
-        result += BoolToString(powerOn);
+        result += String(balanceActive) + String(workloadsAlignemtActive) +
+                  String(heightControlActive) + String(checkVccActive) + String(lightControlActive) +
+                  String(isLightning) + String(powerOn);
+        break;
+      case 's':
+        result += String(maxMotionDelaying - motionDelaying);
         break;
       case 'c':
-        result += BoolToString(balanceActive) + BoolToString(workloadsAlignemtActive) +
-                  BoolToString(heightControlActive) + BoolToString(checkVccActive) + BoolToString(lightControlActive);
+        result += String(minDistance);
+        break;
+      case 'q':
+        result += String(positionV) + " " + String(positionH);
         break;
       default:
         result += "Undefined";
@@ -638,7 +692,8 @@ String TSpider::GetInfo() {
   return result;
 }
 
-String TSpider::SetProperty() {
+template<typename T>
+String TSpider<T>::SetProperty() {
   switch (esp.currentRequest.command_property)
   {
     case 'i': {
@@ -688,7 +743,7 @@ String TSpider::SetProperty() {
       }
       break;
     case 's': {
-        motionDelaying = 50 - esp.currentRequest.args[0];
+        motionDelaying = maxMotionDelaying - esp.currentRequest.args[0];
       }
       break;
     case 'p': {
@@ -704,7 +759,8 @@ String TSpider::SetProperty() {
   return "Recieved";
 }
 
-void TSpider::CheckLight() {
+template<typename T>
+void TSpider<T>::CheckLight() {
   static int stableCounter = 0;
   static const int maxCount = 3;
   if (lightControlActive) {
@@ -724,27 +780,31 @@ void TSpider::CheckLight() {
   }
 }
 
-void TSpider::TurnLight(int state) {
+template<typename T>
+void TSpider<T>::TurnLight(int state) {
   isLightning = (bool)state;
   digitalWrite(ledPin, state);
 }
 
-String TSpider::GetErrorMessage() {
+template<typename T>
+String TSpider<T>::GetErrorMessage() {
   static const String ErrorMessages[] = {"OK", "Problem with a subboard", "Low battary for moving", "Legs power is off",
                                          "Too high workload on a leg", "Too small height for step", "Leg(s) can't reach destination point"
                                         };
   return ErrorMessages[errno];
 }
 
-void TSpider::SetErrno(TErrno error) {
+template<typename T>
+void TSpider<T>::SetErrno(TErrno error) {
   errno = error;
   BasicPosition();
   tasksQueue.Clear();
   esp.Clear();
 }
 
-void TSpider::Update_OnSurface_Worklods_Position() {
-  static const int minLegsOnSurface = 4;
+template<typename T>
+void TSpider<T>::Update_OnSurface_Worklods_Position() {
+  static const int minLegsOnSurface = 5;
   if (!UpdateWorkloads()) {
     int legsOnSurface = 0;
     for (int i = 0; i < 6; ++i) {

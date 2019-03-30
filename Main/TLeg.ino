@@ -15,7 +15,7 @@ void TLeg::Init(int _posOnBody, int _measurePin, int pin1, int pin2, int pog1, i
 int TLeg::ChangeHeight(int delta)
 {
   int newh = h + delta;
-  if ((newh >= 0) && (sqr(L1 + L2) > sqr(newh) + sqr(R)))
+  if ((newh >= 0) && (sqrL1L2 > (sqr(newh) + sqr(R))))
   {
     h = newh;
     return 0;
@@ -36,11 +36,11 @@ int TLeg::WriteAngles(int alpha1, int alpha2)
       else
         --angle1;
       probe = angle1 + p1;
-      if (probe < 180 && probe > 0){
+      //if (probe < 180 && probe > 0){
         servo1.write(probe);
-      }
-      else
-        return 1;
+      //}
+      //else
+        //return 1;
     }
     if (alpha2 != angle2)
     {
@@ -49,11 +49,11 @@ int TLeg::WriteAngles(int alpha1, int alpha2)
       else
         --angle2;
       probe = angle2 + p2;
-      if (probe < 180 && probe > 0){
+      //if (probe < 180 && probe > 0){
         servo2.write(probe);
-      }
-      else
-        return 1;
+      //}
+     // else
+        //return 1;
     }
     return 0;
   }

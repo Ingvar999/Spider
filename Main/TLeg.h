@@ -5,7 +5,7 @@
 class TLeg
 {
   public:
-    byte R;
+    volatile byte R;
     int workload;
 
     void Init(int, int, int, int, int, int, int);
@@ -24,7 +24,8 @@ class TLeg
   private:
     Servo servo1, servo2;
     int angle1, angle2;
-    byte h = 0, measurePin, qR;
+    volatile byte h = 0;
+    byte measurePin, qR;
     short  p1, p2;
     int posOnBody;
 };

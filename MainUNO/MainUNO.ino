@@ -63,7 +63,7 @@ void setup() {
   
   gyro.CalibrationGyro();
   
-  MsTimer2::set(110, Interrupt);
+  MsTimer2::set(100, Interrupt);
   MsTimer2::start();
 
   for (int i = 0; i < 6; ++i){
@@ -85,7 +85,7 @@ void loop()
         UpdateAllAngles();
         break;
       case 'r':
-        gyro.UpdateGyro();
+        //gyro.UpdateGyro();
         Serial.write((byte *)&gyro.angels, sizeof(struct Angels));
         break;
       case 'v':

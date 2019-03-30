@@ -8,11 +8,18 @@
 #include "TSubBoard.h"
 #include "SimpleQueue.h"
 #include "TTask.h"
-#include "BasicDebugger.h"
+#include "FakeDebugger.h"
 #include "TrueDebugger.h"
 
 #define DEBUG
 
+#ifdef DEBUG
+#define TDebugger TrueDebugger
+#else
+#define TDebugger FakeDebugger
+#endif
+
+template<typename T = FakeDebugger>
 class TSpider
 {
   public:
@@ -30,26 +37,27 @@ class TSpider
     static const int echoPin = 43;
     static const int trigPin = 45;
     static const int lightDetectionPin = 47;
-    static const byte a = 85; 
+    static const byte a = 85;
     static const byte minRadius = 40;
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
-    static const int stepDelaying = 400;
+    static const int stepDelaying = 350;
     static const float maxSkew = 4.5;
-    static const int minWorkloadThreshold = 50;
+    static const int minWorkloadThreshold = 60;
     static const int maxWorkloadThreshold = 700;
     static const float maxWorkloadDisparityRate = 0.35;
     static const int minVoltage = 6000;
+    static const int maxMotionDelaying = 30;
 
     TESP8266 esp;
     TSubBoard board;
     TLeg legs[6];
-    BasicDebugger *debugger;
+    T *debugger;
     NewPing *sonar;
     SimpleQueue<TTask> tasksQueue;
-    byte Radius = minRadius, height = 0;
-    int positionH = 0, positionV = 0;
+    volatile byte Radius = minRadius, height = 0;
+    int positionV = 0, positionH = 0;
     byte motionDelaying = 7;
     TErrno errno = OK;
     int minDistance = 30;
@@ -69,7 +77,10 @@ class TSpider
     inline void ThreeLegsUpDown(int i, int j, int k, int dir);
     String GetInfo();
     String SetProperty();
-    bool isValidDistance(){int dist = sonar->ping_cm(); return (dist == 0 || dist > minDistance);}
+    bool isValidDistance() {
+      int dist = sonar->ping_cm();
+      return (dist == 0 || dist > minDistance);
+    }
     void SetErrno(TErrno error);
     void TurnLight(int state);
     void ChangeHeight(int, bool = true);
@@ -93,4 +104,4 @@ class TSpider
     void Update_OnSurface_Worklods_Position();
 };
 
-TSpider Spider;
+TSpider<TDebugger> Spider;
