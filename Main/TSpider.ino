@@ -93,7 +93,6 @@ template<typename T>
 void TSpider<T>::ChangeHeight(int delta, bool changeProperty = true)
 {
   int error = 0;
-  Timer3.stop();
   if (changeProperty && !onSurface) {
     ReachGround();
     if (errno == OK) {
@@ -115,13 +114,11 @@ void TSpider<T>::ChangeHeight(int delta, bool changeProperty = true)
       delay(stepDelaying);
     }
   }
-  Timer3.start();
 }
 
 template<typename T>
 void TSpider<T>::BasicPosition()
 {
-  Timer3.stop();
   for (int i = 0; i < 6; i++)
     legs[i].ChangeHeight(-legs[i].GetHeight());
   height = 0;
@@ -134,7 +131,6 @@ void TSpider<T>::BasicPosition()
   for (int i = 0; i < 6; i++)
     legs[i].R = Radius;
   UpdateAllAngles();
-  Timer3.start();
 }
 
 template<typename T>
@@ -164,17 +160,14 @@ void TSpider<T>::SetRadius(int newR)
   {
     if (!onSurface)
     {
-      Timer3.stop();
       for (int i = 0; i < 6; ++i)
         legs[i].R = newR;
       UpdateAllAngles();
       Radius = newR;
       delay(stepDelaying);
-      Timer3.start();
     }
     else {
       if (height >= minLifting) {
-        Timer3.stop();
         Radius = newR;
         for (int i = 0; i < 2 && errno == OK; i++)
         {
@@ -187,7 +180,6 @@ void TSpider<T>::SetRadius(int newR)
           ReachGround();
           ControlServices();
         }
-        Timer3.start();
       }
       else {
         debugger->Debug("SetRadius sets errno");
@@ -255,7 +247,6 @@ void TSpider<T>::FixedTurn(int angle)
       if (sign)
         turnAngle = 180 - turnAngle;
       byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
-      Timer3.stop();
       while (steps-- && tasksQueue.isEmpty() && errno == OK) {
         for (int j = 1; j >= 0; --j)
         {
@@ -284,7 +275,6 @@ void TSpider<T>::FixedTurn(int angle)
         ControlServices();
       }
       delay(stepDelaying);
-      Timer3.start();
     }
     else {
       debugger->Debug("FixedTurn sets errno");
@@ -303,7 +293,6 @@ void TSpider<T>::Move(int direction, bool wander)
   if (height >= minLifting) {
     byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
     int i, a = 0;
-    Timer3.stop();
     while (tasksQueue.isEmpty() && errno == OK) {
       while (wander && !isValidDistance() && errno == OK) {
         FixedTurn(50);
@@ -359,7 +348,6 @@ void TSpider<T>::Move(int direction, bool wander)
       }
     }
     delay(stepDelaying);
-    Timer3.start();
   }
   else {
     debugger->Debug("Move sets errno");
@@ -498,6 +486,7 @@ int TSpider<T>::HeightControl() {
 
 template<typename T>
 int TSpider<T>::WorkloadsAlignment() {
+  static const float sensitivity = 1.7;
   if (workloadsAlignemtActive) {
     unsigned int amount = 0;
     int error = 0;
@@ -505,13 +494,13 @@ int TSpider<T>::WorkloadsAlignment() {
       amount += legs[i].workload;
     int avarageWorkload = amount / 6;
     for (int i = 0; i < 6 && !error; ++i) {
-      error = legs[i].ChangeHeight((int)((float)(avarageWorkload - legs[i].workload) / (maxWorkloadDisparityRate * avarageWorkload)));
+      error = legs[i].ChangeHeight((int)(sensitivity * (avarageWorkload - legs[i].workload) / (maxWorkloadDisparityRate * avarageWorkload)));
     }
-    String deb = "Alignment " + String(legs[0].GetHeight());
-    for (int i = 1; i < 6; ++i) {
-      deb += " " + String(legs[i].GetHeight());
-    }
-    debugger->Debug(deb);
+    //String deb = "Alignment " + String(legs[0].GetHeight());
+    //for (int i = 1; i < 6; ++i) {
+     // deb += " " + String(legs[i].GetHeight());
+    //}
+    //debugger->Debug(deb);
     if (error) {
       debugger->Debug("WorkloadsAlignment sets errno");
       SetErrno(LEG_CANNOT_REACH_POINT);
@@ -556,6 +545,7 @@ template<typename T>
 void TSpider<T>::DispatchTasksQueue() {
   if (!tasksQueue.isEmpty()) {
     const TTask task = tasksQueue.Pop();
+    Timer3.stop();
     switch (task.argc) {
       case 0: {
           switch (task.command)
@@ -637,6 +627,7 @@ void TSpider<T>::DispatchTasksQueue() {
         break;
     }
     debugger->Send(task.sender);
+    Timer3.start();
   }
 }
 
@@ -804,7 +795,7 @@ void TSpider<T>::SetErrno(TErrno error) {
 
 template<typename T>
 void TSpider<T>::Update_OnSurface_Worklods_Position() {
-  static const int minLegsOnSurface = 5;
+  static const int minLegsOnSurface = 3;
   if (!UpdateWorkloads()) {
     int legsOnSurface = 0;
     for (int i = 0; i < 6; ++i) {

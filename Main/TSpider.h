@@ -11,7 +11,7 @@
 #include "FakeDebugger.h"
 #include "TrueDebugger.h"
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define TDebugger TrueDebugger
@@ -44,7 +44,7 @@ class TSpider
     static const byte maxTurn = 20;
     static const int stepDelaying = 350;
     static const float maxSkew = 4.5;
-    static const int minWorkloadThreshold = 60;
+    static const int minWorkloadThreshold = 50;
     static const int maxWorkloadThreshold = 700;
     static const float maxWorkloadDisparityRate = 0.35;
     static const int minVoltage = 6000;
