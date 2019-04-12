@@ -198,8 +198,9 @@ void TSpider<T>::SetRadius(int newR)
 }
 
 template<typename T>
-void TSpider<T>::Turn(int angle, TDelegate callback)
+int TSpider<T>::Turn(int angle, TDelegate callback)
 {
+  int result = 0;
   if (!onSurface) {
     ChangeHeight(minLifting);
   }
@@ -231,7 +232,7 @@ void TSpider<T>::Turn(int angle, TDelegate callback)
       board.TurnLegs(values);
       UpdateAllAngles();
 
-      callback(this);
+      result = callback(this);
 
       for (int i = 0; i < 6; ++i)
       {
@@ -247,18 +248,21 @@ void TSpider<T>::Turn(int angle, TDelegate callback)
       // too large radius
     }
   }
+  return result;
 }
 
 template<typename T>
-void TSpider<T>::Freeze(TSpider * that)
+int TSpider<T>::Freeze(TSpider * that)
 {
   delay(1000);
+  return 0;
 }
 
 template<typename T>
-void TSpider<T>::LookAround(TSpider * that)
+int TSpider<T>::LookAround(TSpider * that)
 {
-
+  delay(stepDelaying);
+  return that->sonar->ping_cm();
 }
 
 template<typename T>
@@ -333,7 +337,14 @@ void TSpider<T>::Move(int direction, bool wander)
       balanceActive = false;
       while (tasksQueue.isEmpty() && errno == OK) {
         while (wander && !isValidDistance() && errno == OK) {
-          FixedTurn(50);
+          int a = Turn(maxTurn, LookAround);
+          delay(stepDelaying);
+          int b = Turn(-maxTurn, LookAround);
+          delay(stepDelaying);
+          if (a < b && a != 0)
+            FixedTurn(60);
+          else
+            FixedTurn(-40);
         }
         while ((!wander || wander && isValidDistance()) && errno == OK && tasksQueue.isEmpty()) {
           ThreeLegsUpDown(a, a + 2, a + 4, -1);

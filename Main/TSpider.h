@@ -34,7 +34,7 @@ class TSpider
     void ControlServices();
     void DispatchTasksQueue();
   private:
-    typedef void (*TDelegate)(TSpider *that); 
+    typedef int (*TDelegate)(TSpider *that); 
   
     static const int powerPin = 40;
     static const int ledPin = 52;
@@ -91,7 +91,7 @@ class TSpider
     void TurnLight(int state);
     void ChangeHeight(int, bool = true);
     void SetRadius(int newR);
-    void Turn(int angle, TDelegate callback);
+    int Turn(int angle, TDelegate callback);
     void FixedTurn(int angle);
     int PositionAlignment();
     void BasicPosition();
@@ -106,8 +106,8 @@ class TSpider
     String HandleCurrentRequest();
     void Update_OnSurface_Worklods_Position_Vcc();
 
-    static void LookAround(TSpider *that);
-    static void Freeze(TSpider *that);
+    static int LookAround(TSpider *that);
+    static int Freeze(TSpider *that);
 };
 
 TSpider<TDebugger> Spider;
