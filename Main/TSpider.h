@@ -11,6 +11,8 @@
 #include "FakeDebugger.h"
 #include "TrueDebugger.h"
 
+#define NO_FIXED_LEG 10
+
 //#define DEBUG
 
 #ifdef DEBUG
@@ -64,6 +66,7 @@ class TSpider
     byte motionDelaying = 7;
     TErrno errno = OK;
     int minDistance = 30;
+    byte fixedLeg = NO_FIXED_LEG;
     bool balanceActive = true;
     bool workloadsAlignemtActive = true;
     bool heightControlActive = true;
