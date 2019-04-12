@@ -13,7 +13,7 @@ void setup()
   
   Spider.UpdateAllAngles();
   Spider.PowerOn();
-  Spider.StartTimer(450);
+  Spider.StartTimer(400);
 }
 
 void loop()

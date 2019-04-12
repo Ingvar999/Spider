@@ -51,7 +51,7 @@ class TSpider
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
     static const int maxWorkloadThreshold = 700;
-    static const float maxWorkloadDisparityRate = 0.35;
+    static const float maxWorkloadDisparityRate = 0.206;
     static const int minVoltage = 6000;
     static const int maxMotionDelaying = 32;
 
@@ -63,7 +63,7 @@ class TSpider
     SimpleQueue<TTask> tasksQueue;
     volatile byte Radius = defaultRadius, height = 0;
     int positionV = 0, positionH = 0;
-    byte motionDelaying = 7;
+    byte motionDelaying = 6;
     TErrno errno = OK;
     int minDistance = 30;
     byte fixedLeg = NO_FIXED_LEG;
@@ -90,9 +90,6 @@ class TSpider
     void SetErrno(TErrno error);
     void TurnLight(int state);
     void ChangeHeight(int, bool = true);
-    int GetRadius() {
-      return Radius;
-    };
     void SetRadius(int newR);
     void Turn(int angle, TDelegate callback);
     void FixedTurn(int angle);
