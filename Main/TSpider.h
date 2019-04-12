@@ -32,6 +32,8 @@ class TSpider
     void ControlServices();
     void DispatchTasksQueue();
   private:
+    typedef void (*TDelegate)(TSpider *that); 
+  
     static const int powerPin = 40;
     static const int ledPin = 52;
     static const int echoPin = 43;
@@ -39,6 +41,7 @@ class TSpider
     static const int lightDetectionPin = 47;
     static const byte a = 85;
     static const byte minRadius = 40;
+    static const byte defaultRadius = 50;
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
@@ -48,7 +51,7 @@ class TSpider
     static const int maxWorkloadThreshold = 700;
     static const float maxWorkloadDisparityRate = 0.35;
     static const int minVoltage = 6000;
-    static const int maxMotionDelaying = 30;
+    static const int maxMotionDelaying = 32;
 
     TESP8266 esp;
     TSubBoard board;
@@ -56,7 +59,7 @@ class TSpider
     T *debugger;
     NewPing *sonar;
     SimpleQueue<TTask> tasksQueue;
-    volatile byte Radius = minRadius, height = 0;
+    volatile byte Radius = defaultRadius, height = 0;
     int positionV = 0, positionH = 0;
     byte motionDelaying = 7;
     TErrno errno = OK;
@@ -88,7 +91,7 @@ class TSpider
       return Radius;
     };
     void SetRadius(int newR);
-    void Turn(int angle);
+    void Turn(int angle, TDelegate callback);
     void FixedTurn(int angle);
     int PositionAlignment();
     void BasicPosition();
@@ -102,6 +105,9 @@ class TSpider
     String GetErrorMessage();
     String HandleCurrentRequest();
     void Update_OnSurface_Worklods_Position();
+
+    static void LookAround(TSpider *that);
+    static void Freeze(TSpider *that);
 };
 
 TSpider<TDebugger> Spider;

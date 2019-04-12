@@ -127,7 +127,7 @@ void TSpider<T>::BasicPosition()
   byte values[7] = {90, 90, 90, 90, 90, 90, 10};
   board.TurnLegs(values);
 
-  Radius = minRadius;
+  Radius = defaultRadius;
   for (int i = 0; i < 6; i++)
     legs[i].R = Radius;
   UpdateAllAngles();
@@ -194,7 +194,7 @@ void TSpider<T>::SetRadius(int newR)
 }
 
 template<typename T>
-void TSpider<T>::Turn(int angle)
+void TSpider<T>::Turn(int angle, TDelegate callback)
 {
   angle = (angle <= maxTurn ? angle : maxTurn);
   int angle3, x, newR;
@@ -214,12 +214,14 @@ void TSpider<T>::Turn(int angle)
 
     board.TurnLegs(values);
     UpdateAllAngles();
+
+    callback(this);
+    
     for (int i = 0; i < 6; ++i)
     {
       legs[i].R = Radius;
       values[i] = 90;
     }
-    delay(stepDelaying);
     board.TurnLegs(values);
     UpdateAllAngles();
   }
@@ -227,6 +229,18 @@ void TSpider<T>::Turn(int angle)
     debugger->Debug("Turn sets errno");
     SetErrno(LEG_CANNOT_REACH_POINT);
   }
+}
+
+template<typename T>
+void TSpider<T>::Freeze(TSpider *that)
+{
+  delay(1000);
+}
+
+template<typename T>
+void TSpider<T>::LookAround(TSpider *that)
+{
+  
 }
 
 template<typename T>
@@ -293,6 +307,8 @@ void TSpider<T>::Move(int direction, bool wander)
   if (height >= minLifting) {
     byte values[7] = {90, 90, 90, 90, 90, 90, motionDelaying};
     int i, a = 0;
+    bool oldBalanceActive = balanceActive;
+    balanceActive = false;
     while (tasksQueue.isEmpty() && errno == OK) {
       while (wander && !isValidDistance() && errno == OK) {
         FixedTurn(50);
@@ -348,6 +364,7 @@ void TSpider<T>::Move(int direction, bool wander)
       }
     }
     delay(stepDelaying);
+    balanceActive = oldBalanceActive;
   }
   else {
     debugger->Debug("Move sets errno");
@@ -583,7 +600,7 @@ void TSpider<T>::DispatchTasksQueue() {
               }
               break;
             case 't': {
-                Turn(task.args[0]);
+                Turn(task.args[0], Freeze);
               }
               break;
             case 'm': {
