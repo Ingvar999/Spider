@@ -9,7 +9,7 @@ byte val[6];
 byte newVal[7]  = {90, 90, 90, 90, 90, 90, 20};
 short pog[6] = {10, 5, -3, -3, -8, 3};
 byte pins[6] = {5, 3, 11, 10, 9, 6};
-uint32_t currentVcc;
+uint16_t currentVcc;
 
 uint32_t ReadVcc()
 {
@@ -53,46 +53,46 @@ void UpdateAllAngles()
   } while (!done);
 }
 
-void Interrupt(){
+void Interrupt() {
   sei();
   gyro.UpdateGyro();
 }
 
 void setup() {
   Serial.begin(250000);
-  
-  gyro.CalibrationGyro();
-  
-  MsTimer2::set(100, Interrupt);
-  MsTimer2::start();
 
-  for (int i = 0; i < 6; ++i){
+  for (int i = 0; i < 6; ++i) {
     myServo[i].attach(pins[i]);
     val[i] = myServo[i].read();
   }
   UpdateAllAngles();
+
+  gyro.CalibrationGyro();
+  delay(30);
+  
+  MsTimer2::set(100, Interrupt);
+  MsTimer2::start();
 }
 
 void loop()
 {
   if (Serial.available() > 0)
   {
-    MsTimer2::stop();
     switch ((char)Serial.read())
     {
       case 'w':
         Serial.readBytes(newVal, 7);
         UpdateAllAngles();
         break;
-      case 'r':
-        //gyro.UpdateGyro();
-        Serial.write((byte *)&gyro.angels, sizeof(struct Angels));
-        break;
-      case 'v':
-        currentVcc = ((uint32_t)analogRead(0) * 10000) >> 10;
-        Serial.write((byte *)&currentVcc, sizeof(currentVcc));
+      case 'r': {
+          currentVcc = (uint16_t)(((uint32_t)analogRead(0) * 10000) >> 10);
+          MsTimer2::stop();
+          Serial.write((byte *)&gyro.angels, sizeof(struct Angels));
+          Serial.write((byte *)&currentVcc, sizeof(currentVcc));
+          MsTimer2::start();
+        }
         break;
     }
-    MsTimer2::start();
+
   }
 }

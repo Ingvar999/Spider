@@ -5,8 +5,8 @@
 template<typename T>
 void TSpider<T>::ControlServices() {
   CheckLight();
+  Update_OnSurface_Worklods_Position_Vcc();
   CheckVcc();
-  Update_OnSurface_Worklods_Position();
   if (onSurface && errno == OK) {
     if (!(PositionAlignment() || WorkloadsAlignment() || HeightControl()))
       UpdateAllAngles();
@@ -404,7 +404,7 @@ void TSpider<T>::CheckVcc()
 {
   if (checkVccActive)
     if (powerOn) {
-      if (board.GetVcc() < minVoltage) {
+      if (board.Vcc < minVoltage) {
         debugger->Debug("CheckVcc sets errno");
         SetErrno(LOW_BATTARY);
         PowerOff();
@@ -682,7 +682,7 @@ String TSpider<T>::GetInfo() {
         result += String(Radius);
         break;
       case 'v':
-        result += String(board.GetVcc());
+        result += String(board.Vcc);
         break;
       case 'w':
         for (int i = 0; i < 5; ++i)
@@ -842,7 +842,7 @@ void TSpider<T>::SetErrno(TErrno error) {
 }
 
 template<typename T>
-void TSpider<T>::Update_OnSurface_Worklods_Position() {
+void TSpider<T>::Update_OnSurface_Worklods_Position_Vcc() {
   static const int minLegsOnSurface = 3;
   if (!UpdateWorkloads()) {
     int legsOnSurface = 0;
@@ -852,6 +852,6 @@ void TSpider<T>::Update_OnSurface_Worklods_Position() {
       }
     }
     onSurface = legsOnSurface >= minLegsOnSurface;
-    board.UpdatePosition();
+    board.UpdatePositionAndVcc();
   }
 }

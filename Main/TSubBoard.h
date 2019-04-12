@@ -6,10 +6,10 @@ class TSubBoard
 {
   public:
     struct Angles position;
+    uint16_t Vcc;
 
     void Init(HardwareSerial *);
-    uint32_t GetVcc();
-    void UpdatePosition();
+    void UpdatePositionAndVcc();
     void TurnLegs(byte [7]);
 
   private:

@@ -107,7 +107,7 @@ class TSpider
     int HeightControl();
     String GetErrorMessage();
     String HandleCurrentRequest();
-    void Update_OnSurface_Worklods_Position();
+    void Update_OnSurface_Worklods_Position_Vcc();
 
     static void LookAround(TSpider *that);
     static void Freeze(TSpider *that);

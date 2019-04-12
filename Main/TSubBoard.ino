@@ -3,19 +3,13 @@
 void TSubBoard::Init(HardwareSerial *_port) {
   port = _port;
   port->begin(250000);
-  port->setTimeout(30);
+  port->setTimeout(50);
 }
 
-uint32_t TSubBoard::GetVcc() {
-  port->write('v');
-  uint32_t currentVcc = 0;
-  port->readBytes((byte *)&currentVcc, sizeof(currentVcc));
-  return currentVcc;
-}
-
-void TSubBoard::UpdatePosition() {
+void TSubBoard::UpdatePositionAndVcc() {
   port->write('r');
   port->readBytes((byte *)&position, sizeof(struct Angles));
+  port->readBytes((byte *)&Vcc, sizeof(Vcc));
   if (position.horizontal >= -30){
     position.horizontal -= 150;
   }
