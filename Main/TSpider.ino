@@ -101,8 +101,11 @@ void TSpider<T>::ChangeHeight(int delta, bool changeProperty = true)
   }
   if (errno == OK) {
     int i;
-    for (i = 0; i < 6 && !error; ++i)
-      error = legs[i].ChangeHeight(delta);
+    for (i = 0; i < 6 && !error; ++i){
+      if (i != fixedLeg){
+        error = legs[i].ChangeHeight(delta);
+      }
+    }
     if (error) {
       debugger->Debug(String(onSurface) + " " + String(changeProperty) + " " + String(height) + " " + String(delta) + " " + String(legs[i].GetHeight()));
       debugger->Debug("ChangeHeight sets errno");
@@ -521,9 +524,12 @@ int TSpider<T>::WorkloadsAlignment() {
   if (workloadsAlignemtActive) {
     unsigned int amount = 0;
     int error = 0;
-    for (int i = 0; i < 6; ++i)
-      amount += legs[i].workload;
-    int avarageWorkload = amount / 6;
+    for (int i = 0; i < 6; ++i){
+      if (i != fixedLeg){
+        amount += legs[i].workload;
+      }
+    }
+    int avarageWorkload = amount / (fixedLeg == NO_FIXED_LEG ? 6 : 5);
     for (int i = 0; i < 6 && !error; ++i) {
       if (i != fixedLeg){
         error = legs[i].ChangeHeight((int)(sensitivity * (avarageWorkload - legs[i].workload) / (maxWorkloadDisparityRate * avarageWorkload)));
