@@ -4,15 +4,19 @@
 
 template<typename T>
 void TSpider<T>::ControlServices() {
-  CheckLight();
-  Update_OnSurface_Worklods_Position_Vcc();
-  CheckVcc();
-  if (onSurface && errno == OK) {
-    if (!(PositionAlignment() || WorkloadsAlignment() || HeightControl()))
-      UpdateAllAngles();
-  }
-  if (esp.ReadRequest()) {
-    esp.SendResponse(HandleCurrentRequest());
+  uint32_t now = millis();
+  if (now - lastTimerHandlingTime > 300) {
+    lastTimerHandlingTime = now;
+    CheckLight();
+    Update_OnSurface_Worklods_Position_Vcc();
+    CheckVcc();
+    if (onSurface && errno == OK) {
+      if (!(PositionAlignment() || WorkloadsAlignment() || HeightControl()))
+        UpdateAllAngles();
+    }
+    if (esp.ReadRequest()) {
+      esp.SendResponse(HandleCurrentRequest());
+    }
   }
 }
 
@@ -254,7 +258,7 @@ int TSpider<T>::Turn(int angle, TDelegate callback)
 template<typename T>
 int TSpider<T>::Freeze(TSpider * that)
 {
-  delay(1000);
+  delay(2000);
   return 0;
 }
 
@@ -341,10 +345,10 @@ void TSpider<T>::Move(int direction, bool wander)
           delay(stepDelaying);
           int b = Turn(-maxTurn, LookAround);
           delay(stepDelaying);
-          if (a < b && a != 0)
+          if (a < b && a > 0)
             FixedTurn(60);
           else
-            FixedTurn(-40);
+            FixedTurn(-60);
         }
         while ((!wander || wander && isValidDistance()) && errno == OK && tasksQueue.isEmpty()) {
           ThreeLegsUpDown(a, a + 2, a + 4, -1);
@@ -867,6 +871,8 @@ void TSpider<T>::Update_OnSurface_Worklods_Position_Vcc() {
       }
     }
     onSurface = legsOnSurface >= minLegsOnSurface;
-    board.UpdatePositionAndVcc();
+    if (board.UpdatePositionAndVcc()){
+      SetErrno(SUBBOARD);
+    }
   }
 }

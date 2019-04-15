@@ -61,17 +61,17 @@ void Interrupt() {
 void setup() {
   Serial.begin(250000);
 
+  gyro.CalibrationGyro();
+  delay(20);
+  
+  MsTimer2::set(110, Interrupt);
+  MsTimer2::start();
+  
   for (int i = 0; i < 6; ++i) {
     myServo[i].attach(pins[i]);
     val[i] = myServo[i].read();
   }
   UpdateAllAngles();
-
-  gyro.CalibrationGyro();
-  delay(30);
-  
-  MsTimer2::set(100, Interrupt);
-  MsTimer2::start();
 }
 
 void loop()

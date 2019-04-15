@@ -43,7 +43,7 @@ class TSpider
     static const int lightDetectionPin = 47;
     static const byte a = 85;
     static const byte minRadius = 40;
-    static const byte defaultRadius = 50;
+    static const byte defaultRadius = 45;
     static const byte minLifting = 30;
     static const byte stepLength = 20;
     static const byte maxTurn = 20;
@@ -51,7 +51,7 @@ class TSpider
     static const float maxSkew = 4.5;
     static const int minWorkloadThreshold = 50;
     static const int maxWorkloadThreshold = 700;
-    static const float maxWorkloadDisparityRate = 0.206;
+    static const float maxWorkloadDisparityRate = 0.24;
     static const int minVoltage = 6000;
     static const int maxMotionDelaying = 32;
 
@@ -67,6 +67,7 @@ class TSpider
     TErrno errno = OK;
     int minDistance = 30;
     byte fixedLeg = NO_FIXED_LEG;
+    uint32_t lastTimerHandlingTime = 0;
     bool balanceActive = true;
     bool workloadsAlignemtActive = true;
     bool heightControlActive = true;

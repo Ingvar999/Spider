@@ -3,10 +3,10 @@
 void TSubBoard::Init(HardwareSerial *_port) {
   port = _port;
   port->begin(250000);
-  port->setTimeout(50);
+  port->setTimeout(30);
 }
 
-void TSubBoard::UpdatePositionAndVcc() {
+int TSubBoard::UpdatePositionAndVcc() {
   port->write('r');
   port->readBytes((byte *)&position, sizeof(struct Angles));
   port->readBytes((byte *)&Vcc, sizeof(Vcc));
@@ -16,6 +16,10 @@ void TSubBoard::UpdatePositionAndVcc() {
   else{
     position.horizontal += 210;
   }
+  if (position.horizontal > 180 || position.horizontal < -180 || position.vertical > 90 || position.vertical < 0 || Vcc > 8000){
+    return 1;
+  }
+  return 0;
 }
 
 void TSubBoard::TurnLegs(byte values[7]) {

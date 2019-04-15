@@ -9,7 +9,7 @@ class TSubBoard
     uint16_t Vcc;
 
     void Init(HardwareSerial *);
-    void UpdatePositionAndVcc();
+    int UpdatePositionAndVcc();
     void TurnLegs(byte [7]);
 
   private:
