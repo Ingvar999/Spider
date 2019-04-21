@@ -127,6 +127,7 @@ template<typename T>
 void TSpider<T>::BasicPosition()
 {
   fixedLeg = NO_FIXED_LEG;
+  positionV = positionH = 0;
   for (int i = 0; i < 6; i++)
     legs[i].ChangeHeight(-legs[i].GetHeight());
   height = 0;
@@ -258,7 +259,7 @@ int TSpider<T>::Turn(int angle, TDelegate callback)
 template<typename T>
 int TSpider<T>::Freeze(TSpider * that)
 {
-  delay(2000);
+  delay(1000);
   return 0;
 }
 
@@ -457,7 +458,7 @@ int TSpider<T>::Balance()
   if (error) {
     debugger->Debug("Balance sets errno");
     debugger->Debug(String(onSurface) + " " + String(height) + " " + String(dh) + " " + String(board.position.vertical) + " " + String(legs[i].GetHeight()));
-    SetErrno(LEG_CANNOT_REACH_POINT);
+    SetErrno(BALANCE);
   }
   return error;
 }
@@ -555,7 +556,7 @@ int TSpider<T>::WorkloadsAlignment() {
     }
     if (error) {
       debugger->Debug("WorkloadsAlignment sets errno");
-      SetErrno(LEG_CANNOT_REACH_POINT);
+      SetErrno(WORKLOAD_ALIGNMENT);
     }
     return error;
   }
@@ -677,6 +678,9 @@ void TSpider<T>::DispatchTasksQueue() {
       case 2: {
           switch (task.command)
           {
+            case 'o':
+              Rotate(task.args[0], task.args[1]);
+              break;
             default:
               debugger->Debug("Invalid command for 2 parameters");
               break;
@@ -846,8 +850,8 @@ void TSpider<T>::TurnLight(int state) {
 
 template<typename T>
 String TSpider<T>::GetErrorMessage() {
-  static const String ErrorMessages[] = {"OK", "Problem with a subboard", "Low battary for moving", "Legs power is off",
-                                         "Too high workload on a leg", "Too small height for step", "Leg(s) can't reach destination point"
+  static const String ErrorMessages[] = {"OK", "Problem with a subboard", "Low battary for moving", "Legs power is off", "Too high workload on a leg",
+                                         "Leg(s) can't reach destination point", "Error during balancing", "Error during workload alignment" 
                                         };
   return ErrorMessages[errno];
 }
@@ -871,8 +875,34 @@ void TSpider<T>::Update_OnSurface_Worklods_Position_Vcc() {
       }
     }
     onSurface = legsOnSurface >= minLegsOnSurface;
-    if (board.UpdatePositionAndVcc()){
+    if (board.UpdatePositionAndVcc()) {
       SetErrno(SUBBOARD);
+    }
+  }
+}
+
+template<typename T>
+void TSpider<T>::Rotate(int deviation, int step) {
+  if (height < minLifting) {
+    ChangeHeight(minLifting - height);
+  }
+  if (errno == OK) {
+    positionV = deviation;
+    for (int angle = -180; angle < 180 && errno == OK; angle += step){
+      positionH = angle;
+      if (!Balance()){
+        UpdateAllAngles();
+      }
+      delay(100);
+      if (board.UpdatePositionAndVcc()){
+        SetErrno(SUBBOARD); 
+      }
+    }
+    if (errno == OK){
+      positionV = positionH = 0;
+      if (!Balance()){
+        UpdateAllAngles();
+      }
     }
   }
 }

@@ -21,6 +21,8 @@
 #define TDebugger FakeDebugger
 #endif
 
+enum TErrno{ OK, SUBBOARD, LOW_BATTARY, POWER_OFF, HIGH_WORKLOAD, LEG_CANNOT_REACH_POINT, BALANCE, WORKLOAD_ALIGNMENT};
+
 template<typename T = FakeDebugger>
 class TSpider
 {
@@ -106,6 +108,7 @@ class TSpider
     String GetErrorMessage();
     String HandleCurrentRequest();
     void Update_OnSurface_Worklods_Position_Vcc();
+    void Rotate(int deviation, int step);
 
     static int LookAround(TSpider *that);
     static int Freeze(TSpider *that);

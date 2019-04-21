@@ -25,5 +25,3 @@ int sign(int32_t value){
 #define L2 70
 
 const long sqrL1L2 = sqr(L1 + L2);
-
-enum TErrno{ OK, SUBBOARD, LOW_BATTARY, POWER_OFF, HIGH_WORKLOAD, TOO_SMALL_HEIGHT, LEG_CANNOT_REACH_POINT};
