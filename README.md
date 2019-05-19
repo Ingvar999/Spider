@@ -2,7 +2,7 @@
 
 ## Protocol over TCP
 ### General information
-After device is conected to "ESP8266" wi-fi network, host will available on 192.168.88.1:80.
+After device is conected to "PAUK" wi-fi network, host will available on 192.168.88.1:80.
 There are three types of requests: to perform movement, set property, get information about current state. Letters 'd', 's', 'i' define these types correspondingly.
 Each request ends with symbol '\n' and starts with request type. All parameters are int.
 
